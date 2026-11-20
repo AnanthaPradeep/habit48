@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - run: mkdir -p site && cp index.html site/
+      - run: mkdir -p site && cp index.html manifest.webmanifest sw.js site/ && base64 -d icon-192.b64 > site/icon-192.png && base64 -d icon-512.b64 > site/icon-512.png
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
