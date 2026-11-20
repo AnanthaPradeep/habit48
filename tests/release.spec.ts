@@ -13,6 +13,12 @@ async function login(page: Page) {
   await expect(page.locator('.sync-indicator [role="status"]')).toHaveText('Live')
 }
 
+test('removes ChatGPT attribution while keeping the workout link and other parameters', async ({ page, context }) => {
+  await journalBackend().attach(context)
+  await page.goto('./?utm_source=chatgpt.com&ref=shortcut#workout')
+  await expect(page).toHaveURL(/\/habit48\/\?ref=shortcut#workout$/)
+})
+
 test('quick logs, reviews, goals, schedules and planner sync between desktop and mobile', async ({ page, context, browser, baseURL }, info) => {
   test.skip(info.project.name !== 'desktop', 'This test creates an independent mobile browser context.')
   test.setTimeout(140000)
