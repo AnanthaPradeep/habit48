@@ -27,7 +27,14 @@ export function Sidebar({ view, logged }: { view: View; logged: number }) {
   </aside>
 }
 
-export function PageHeader({ view, day, theme, toggle }: { view: View; day: string; theme: 'light' | 'dark'; toggle(): void }) {
+export function PageHeader({ view, day, theme, toggle, connection, lastSynced }: {
+  view: View
+  day: string
+  theme: 'light' | 'dark'
+  toggle(): void
+  connection: 'Live' | 'Connecting' | 'Syncing' | 'Offline'
+  lastSynced: number | null
+}) {
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     const focus = () => {
@@ -43,9 +50,17 @@ export function PageHeader({ view, day, theme, toggle }: { view: View; day: stri
   return <header className="page-header">
     <div><p className="eyebrow">{dated ? labelDate(day, { dateStyle: 'full' }) : 'My Routine'}</p>
       <h1 ref={heading} tabIndex={-1}>{title}</h1></div>
-    <button className="icon-button" type="button" aria-label="Toggle dark theme" aria-pressed={theme === 'dark'} onClick={toggle}>
-      {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-    </button>
+    <div className="header-actions">
+      <div className="sync-indicator" data-connection={connection}>
+        <span role="status">{connection}</span>
+        <small>{lastSynced === null ? 'Last synced —' : <>Last synced <time dateTime={new Date(lastSynced).toISOString()}>
+          {new Date(lastSynced).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+        </time></>}</small>
+      </div>
+      <button className="icon-button" type="button" aria-label="Toggle dark theme" aria-pressed={theme === 'dark'} onClick={toggle}>
+        {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+      </button>
+    </div>
   </header>
 }
 

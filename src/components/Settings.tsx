@@ -5,7 +5,7 @@ import { download } from '../services/exports'
 interface Props {
   journal: Journal
   status: string
-  saveChallenge(start: string, target: number): void
+  saveChallenge(start: string, target: number): boolean
   restore(journal: Journal): boolean
   refresh(): void
   logout(): void
@@ -13,13 +13,18 @@ interface Props {
 export function Settings({ journal, status, saveChallenge, restore, refresh, logout }: Props) {
   const file = useRef<HTMLInputElement>(null)
   const [importStatus, setImportStatus] = useState('')
+  const [challenge, setChallenge] = useState<{ start: string; target: string; baselineStart: string; baselineTarget: number } | null>(null)
   const count = challengeCount(journal)
+  const fields = challenge ?? { start: journal.start, target: String(journal.target), baselineStart: journal.start, baselineTarget: journal.target }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const fields = new FormData(event.currentTarget)
-    const start = fields.get('start')
-    const target = Number(fields.get('target'))
-    if (validDate(start) && Number.isInteger(target) && target >= 0) saveChallenge(start, target)
+    const { start, baselineStart, baselineTarget } = fields
+    const target = Number(fields.target)
+    if (!validDate(start) || !Number.isInteger(target) || target < 0) return
+    if ((baselineStart !== journal.start || baselineTarget !== journal.target) &&
+        (start !== journal.start || target !== journal.target) &&
+        !confirm('Both devices changed the personal challenge. Keep this device version?')) return
+    if (saveChallenge(start, target)) setChallenge(null)
   }
   async function importBackup(input: HTMLInputElement) {
     const backup = input.files?.[0]
@@ -35,9 +40,11 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
   return <div className="settings-grid">
     <section className="panel">
       <h2>Personal challenge</h2>
-      <form className="challenge-form" onSubmit={submit} key={journal.start + '/' + journal.target}>
-        <label>Start date<input type="date" name="start" defaultValue={journal.start} required /></label>
-        <label>Target days (0 = unlimited)<input type="number" name="target" defaultValue={journal.target} min="0" step="1" /></label>
+      <form className="challenge-form" onSubmit={submit}>
+        <label>Start date<input type="date" name="start" value={fields.start} required onChange={event =>
+          setChallenge({ ...fields, start: event.target.value })} /></label>
+        <label>Target days (0 = unlimited)<input type="number" name="target" value={fields.target} min="0" step="1" onChange={event =>
+          setChallenge({ ...fields, target: event.target.value })} /></label>
         <button type="submit">Save challenge</button>
       </form>
       <p>{journal.target ? count + '/' + journal.target + ' challenge days logged · journal continues afterwards' : 'Unlimited routine'}</p>

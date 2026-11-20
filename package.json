@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/AnanthaPradeep/habit48#readme",
   "dependencies": {
+    "@supabase/realtime-js": "2.109.0",
     "lucide-react": "1.77.0",
     "motion": "14.14.0",
     "react": "19.3.1",

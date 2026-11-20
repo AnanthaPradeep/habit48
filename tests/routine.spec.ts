@@ -1,38 +1,9 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { devices, expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { blankEntry, keys, today, type Journal } from '../src/domain/journal'
-import { ownerEmail, ownerUsername } from '../src/services/config'
+import { ownerUsername } from '../src/services/config'
 
-async function mockSupabase(context: BrowserContext, initial?: Journal) {
-  let row = initial ? { user_id: 'test-user', payload: initial, updated_at: new Date().toISOString() } : undefined
-  let offline = false
-  const writes: string[] = []
-  await context.route(/^https:\/\/[^/]+\.supabase\.co\//, async route => {
-    const request = route.request()
-    const url = new URL(request.url())
-    if (offline) return route.abort('internetdisconnected')
-    if (url.pathname === '/auth/v1/token') {
-      const body = request.postDataJSON()
-      if (url.searchParams.get('grant_type') === 'password' && (body.email !== ownerEmail || body.password !== 'sample-password')) {
-        return route.fulfill({ status: 400, json: { msg: 'Invalid login credentials' } })
-      }
-      return route.fulfill({ json: { user: { id: 'test-user', email: ownerEmail }, access_token: 'sample-access',
-        refresh_token: 'sample-refresh', expires_at: Math.floor(Date.now() / 1000) + 3600 } })
-    }
-    if (url.pathname === '/auth/v1/logout') return route.fulfill({ status: 204 })
-    if (url.pathname !== '/rest/v1/routine_journal' || request.headers().authorization !== 'Bearer sample-access') {
-      return route.fulfill({ status: 401, json: { message: 'Unexpected request in isolated test' } })
-    }
-    const method = request.method()
-    if (method === 'PATCH' && url.searchParams.get('updated_at') !== 'eq.' + row?.updated_at) return route.fulfill({ json: [] })
-    if (method === 'POST' || method === 'PATCH') {
-      row = request.postDataJSON()
-      writes.push(method)
-    }
-    return route.fulfill({ json: row ? [row] : [] })
-  })
-  return { payload: () => row?.payload, writes, offline(value: boolean) { offline = value } }
-}
+import { journalBackend, mockSupabase } from './supabase-fixture'
 
 async function login(page: Page) {
   await page.locator('#splash').waitFor({ state: 'hidden' })
@@ -44,9 +15,10 @@ async function login(page: Page) {
 const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole('link', { name, exact: true }).click()
 const current = (page: Page) => page.getByLabel('Jump to date').inputValue()
 const syncDone = (page: Page) => page.waitForFunction(key => !localStorage.getItem(key), keys.pending)
+const connection = (page: Page) => page.locator('.sync-indicator').getByRole('status')
 
 test('signed-out access, username gate, password visibility and sign-out', async ({ page, context }) => {
-  await mockSupabase(context)
+  const cloud = await mockSupabase(context)
   await page.goto('./')
   await expect(page.getByRole('main')).toHaveCount(0)
   await page.locator('#splash').waitFor({ state: 'hidden' })
@@ -62,9 +34,11 @@ test('signed-out access, username gate, password visibility and sign-out', async
   await login(page)
   await syncDone(page)
   await nav(page, 'Settings')
+  await expect(connection(page)).toHaveText('Live')
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.locator('#loginStatus')).toContainText('Signed out')
   expect(await page.evaluate(key => sessionStorage.getItem(key), keys.session)).toBeNull()
+  await expect.poll(cloud.leaves).toBe(1)
 })
 
 test('migrates existing records, saves journal, charts periods and round-trips exports', async ({ page, context }, testInfo) => {
@@ -170,6 +144,7 @@ test('loads the installed shell offline, queues edits and resyncs', async ({ pag
   await context.setOffline(true)
   await page.reload()
   await expect(page.getByRole('main')).toBeVisible()
+  await expect(connection(page)).toHaveText('Offline')
   await page.locator('#splash').waitFor({ state: 'hidden' })
   await nav(page, 'Journal')
   await page.getByLabel('Notes').fill('Saved offline')
@@ -181,6 +156,65 @@ test('loads the installed shell offline, queues edits and resyncs', async ({ pag
   cloud.offline(false)
   await context.setOffline(false)
   await expect(page.locator('#cloudStatus')).toContainText('Saved to cloud')
+  await expect(connection(page)).toHaveText('Live')
   await syncDone(page)
   expect(cloud.payload()?.entries[day].notes).toBe('Saved offline')
+})
+
+test('syncs both directions across isolated desktop and mobile contexts and keeps drafts', async ({ browser, page: desktop, context, baseURL }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'This scenario creates its own mobile browser context.')
+  const backend = journalBackend()
+  const pc = await backend.attach(context)
+  const mobileContext = await browser.newContext({ ...devices['Pixel 7'], baseURL })
+  try {
+    const phone = await backend.attach(mobileContext)
+    const mobile = await mobileContext.newPage()
+    await desktop.goto('./')
+    await login(desktop)
+    await syncDone(desktop)
+    await mobile.goto('./')
+    await login(mobile)
+    await Promise.all([nav(desktop, 'Journal'), nav(mobile, 'Journal')])
+    await expect(connection(desktop)).toHaveText('Live')
+    await expect(connection(mobile)).toHaveText('Live')
+    const desktopNotes = desktop.getByLabel('Notes')
+    const mobileNotes = mobile.getByLabel('Notes')
+    const readsBefore = [pc.reads(), phone.reads()]
+    await mobileNotes.fill('Mobile saved first')
+    await mobile.getByRole('button', { name: 'Save day' }).click()
+    await expect(desktopNotes).toHaveValue('Mobile saved first')
+    await expect(connection(desktop)).toHaveText('Live')
+    await expect(connection(mobile)).toHaveText('Live')
+    expect([pc.reads() - readsBefore[0], phone.reads() - readsBefore[1]]).toEqual([1, 1])
+    expect(backend.writes).toEqual(['POST', 'PATCH'])
+    await expect(desktop.locator('.sync-indicator time')).toBeVisible()
+
+    await desktopNotes.fill('Unsaved desktop draft')
+    await mobileNotes.fill('Newer mobile version')
+    await mobile.getByRole('button', { name: 'Save day' }).click()
+    const day = await current(desktop)
+    await desktop.waitForFunction(({ key, day }) =>
+      JSON.parse(localStorage.getItem(key) ?? '{}').entries?.[day]?.notes === 'Newer mobile version', { key: keys.journal, day })
+    await expect(desktopNotes).toHaveValue('Unsaved desktop draft')
+    desktop.once('dialog', dialog => dialog.dismiss())
+    await desktop.getByRole('button', { name: 'Save day' }).click()
+    await expect(desktop.getByText('Cloud version kept. Your draft is still open.')).toBeVisible()
+    expect(backend.payload()?.entries[day].notes).toBe('Newer mobile version')
+    desktop.once('dialog', dialog => dialog.accept())
+    await desktop.getByRole('button', { name: 'Save day' }).click()
+    await expect(mobileNotes).toHaveValue('Unsaved desktop draft')
+    await syncDone(desktop)
+    expect(backend.writes).toEqual(['POST', 'PATCH', 'PATCH', 'PATCH'])
+
+    backend.setBroadcast(false)
+    await mobileNotes.fill('Recovered on focus')
+    await mobile.getByRole('button', { name: 'Save day' }).click()
+    await syncDone(mobile)
+    await expect(desktopNotes).toHaveValue('Unsaved desktop draft')
+    await desktop.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(desktopNotes).toHaveValue('Recovered on focus')
+    expect(backend.writes).toEqual(['POST', 'PATCH', 'PATCH', 'PATCH', 'PATCH'])
+  } finally {
+    await mobileContext.close()
+  }
 })

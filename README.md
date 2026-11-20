@@ -54,6 +54,16 @@ The repository has no database migrations or RLS definitions. A read-only produc
 - `src/components` and `src/hooks` hold React views and theme behavior. Tailwind utilities complement the existing palette and layout. Lucide provides icons, Recharts renders insights, and Motion animates progress with reduced-motion support.
 - `scripts/build-worker.mjs` generates a service worker with a content-derived cache version. Online navigation revalidates HTML. Offline navigation uses the precached shell. Only allowlisted public build assets are precached, and authenticated requests stay outside the worker cache. A tab with an unexpired cached session can reopen the journal offline and sync saved changes on reconnect.
 
+### Live synchronization
+
+Production publishes `public.routine_journal` through `supabase_realtime`. Existing owner RLS applies to both the change subscription and the authenticated REST read. To enable the same feature on another configured Supabase environment, add the table to that environment's publication once.
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.routine_journal;
+```
+
+Each signed-in client subscribes to INSERT and UPDATE for its user ID. Events trigger a read of the latest row, while saved edits continue through the timestamp-guarded write queue. Duplicate events and echoes of the client's own writes are ignored. Reconnecting or returning to the tab catches up on changes made while away. Incoming state updates leave in-progress journal and challenge edits open, with a conflict choice if the underlying saved data changed.
+
 ### Rollback
 
 Revert the migration commit on `main` and push the revert. This restores the previous Pages build workflow and republishes the Vanilla app.

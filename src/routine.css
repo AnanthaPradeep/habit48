@@ -89,6 +89,12 @@ body:has(#loginGate) #root { width: min(100%, 420px); }
 .sidebar-summary { margin-top: auto; padding: .8rem .4rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
 .workspace { width: 100%; max-width: 1260px; margin: 0 auto; padding: clamp(20px, 4vw, 56px); }
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 24px; }
+.header-actions { display: flex; align-items: center; gap: .65rem; }
+.sync-indicator { color: var(--muted); text-align: right; white-space: nowrap; font-size: .77rem; }
+.sync-indicator span { display: block; font-weight: 700; }
+.sync-indicator span::before { content: ''; display: inline-block; width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; margin-right: .35rem; }
+.sync-indicator[data-connection="Live"] span { color: var(--accent); }
+.sync-indicator small { font-size: .68rem; }
 .page-header h1 { font-family: Georgia, serif; font-size: clamp(2.25rem, 5.2vw, 4.4rem); line-height: 1.02; font-weight: 500; letter-spacing: -.06em; margin-top: .35rem; }
 .eyebrow { color: var(--muted); font: 700 .72rem/1.4 system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
 .icon-button, .quiet-button { display: inline-grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
@@ -190,6 +196,8 @@ summary { cursor: pointer; font-weight: 650; }
   .journal-grid, .settings-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
+  .header-actions { display: grid; justify-items: end; gap: .3rem; }
+  .header-actions button { order: -1; }
   #habits { grid-template-columns: 1fr; }
   .calendar-actions .icon-button { width: 38px; }
   .calendar-actions .quiet-button { padding-inline: .5rem; }

@@ -15,9 +15,22 @@ export function App({ cloud }: { cloud: CloudJournal }) {
   const state = useSyncExternalStore(cloud.subscribe, cloud.getSnapshot)
   const { theme, toggle } = useTheme()
   useEffect(() => {
+    const unmount = cloud.mountLive(navigator.onLine)
     void cloud.initialize()
-    window.addEventListener('online', cloud.sync)
-    return () => window.removeEventListener('online', cloud.sync)
+    const online = () => cloud.setOnline(true)
+    const offline = () => cloud.setOnline(false)
+    const visible = () => { if (document.visibilityState === 'visible') cloud.focus() }
+    window.addEventListener('online', online)
+    window.addEventListener('offline', offline)
+    window.addEventListener('focus', cloud.focus)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      window.removeEventListener('online', online)
+      window.removeEventListener('offline', offline)
+      window.removeEventListener('focus', cloud.focus)
+      document.removeEventListener('visibilitychange', visible)
+      unmount()
+    }
   }, [cloud])
   return <>
     <Splash />
@@ -36,13 +49,13 @@ function Workspace({ cloud, state, theme, toggle }: {
   const { journal, status } = state
   const [view, setView] = useState(getView)
   const [day, setDay] = useState(today)
-  const [draft, setDraft] = useState<Entry | null>(null)
+  const [draft, setDraft] = useState<{ entry: Entry; baseline: Entry | undefined } | null>(null)
   const [warnings, setWarnings] = useState<string[] | null>(null)
   const [formStatus, setFormStatus] = useState('')
   const [filters, setFilters] = useState<Filters>(() => ({ from: shift(today(), -30), to: today(), period: 'daily', metric: 'habit' }))
   const [printFilters, setPrintFilters] = useState<Filters | null>(null)
   const saved = journal.entries[day]
-  const current = draft ?? saved ?? blankEntry()
+  const current = draft?.entry ?? saved ?? blankEntry()
   const inferred = draft || current.cal?.length ? null : estimateCalories(current.f)
   const entry = inferred ? { ...current, cal: inferred.items } : current
   useEffect(() => {
@@ -69,7 +82,7 @@ function Workspace({ cloud, state, theme, toggle }: {
   }
   function changeEntry(next: Entry) {
     setFormStatus('')
-    setDraft(next)
+    setDraft(previous => ({ entry: next, baseline: previous ? previous.baseline : saved }))
   }
   function recalculate(food: string[]) {
     const estimate = estimateCalories(food)
@@ -80,6 +93,13 @@ function Workspace({ cloud, state, theme, toggle }: {
     if (entry.m.some(value => value != null && value !== '' && (!Number.isFinite(Number(value)) || Number(value) < 0))) {
       setFormStatus('Enter valid, non-negative values in Activity & recovery.')
       return
+    }
+    if ((draft && cloud.hasDraftConflict(day, draft.baseline, entry)) ||
+        (!draft && cloud.hasDraftConflict(day, saved, entry))) {
+      if (!confirm('Both devices changed ' + day + '. Keep this device version?')) {
+        setFormStatus('Cloud version kept. Your draft is still open.')
+        return
+      }
     }
     if (cloud.saveEntry(day, entry)) {
       setDraft(null)
@@ -96,7 +116,8 @@ function Workspace({ cloud, state, theme, toggle }: {
   return <main id="privateApp">
     <Sidebar view={view} logged={Object.keys(journal.entries).length} />
     <div className="workspace">
-      <PageHeader day={day} view={view} theme={theme} toggle={toggle} />
+      <PageHeader day={day} view={view} theme={theme} toggle={toggle}
+        connection={state.connection} lastSynced={state.lastSynced} />
       {dated && <Calendar day={day} journal={journal} move={move} />}
       {view === 'today' && <Today entry={entry} day={day} start={journal.start} onToggle={index =>
         changeEntry({ ...entry, h: entry.h.map((done, i) => index === i ? !done : done) })} />}
@@ -107,7 +128,7 @@ function Workspace({ cloud, state, theme, toggle }: {
       </div>
       {view === 'insights' && <Insights journal={journal} filters={filters} change={setFilters} print={print} />}
       {view === 'settings' && <Settings journal={journal} status={status}
-        saveChallenge={(start, target) => { if (discard()) cloud.saveChallenge(start, target) }}
+        saveChallenge={(start, target) => discard() && cloud.saveChallenge(start, target)}
         restore={backup => discard() && cloud.restore(backup)}
         refresh={() => void cloud.refresh(Boolean(draft))} logout={() => void cloud.logout(Boolean(draft))} />}
       {dated && <footer className="save-bar"><p role="status">{formStatus || (draft ? 'Unsaved changes' : saved ? 'Saved' : 'Not saved')}</p>
