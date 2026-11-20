@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 
 const files = [
-  'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'brand/logo.svg',
+  'index.html', 'manifest.webmanifest', 'brand/logo.svg',
+  ...readdirSync('dist/icons').sort().map(name => 'icons/' + name),
   ...readdirSync('dist/assets').sort().map(name => 'assets/' + name),
 ]
 const template = readFileSync('scripts/worker-template.js', 'utf8')
