@@ -49,6 +49,103 @@ const framePairs: Record<string, [string, string]> = {
     '98,28 98,49 98,94 93,125 93,157 83,32 83,11 105,125 109,157 113,32 113,11'],
 }
 
+function paintTrainer(context: CanvasRenderingContext2D, points: Point[], exercise: Exercise, facing: number, frontView: boolean) {
+  const [head, shoulder, hip, frontKnee, frontFoot, frontElbow, frontHand, backKnee, backFoot, backElbow, backHand] = points
+  const between = ([x, y]: Point, [a, b]: Point, amount: number): Point => [x + (a - x) * amount, y + (b - y) * amount]
+  const offset = (point: Point, x: number, y: number): Point => [point[0] + x, point[1] + y]
+  const length = Math.hypot(hip[0] - shoulder[0], hip[1] - shoulder[1]) || 1
+  const side: Point = [(hip[1] - shoulder[1]) / length, (shoulder[0] - hip[0]) / length]
+  const sideways = (point: Point, distance: number) => offset(point, side[0] * distance, side[1] * distance)
+  const width = frontView ? 13 : 9
+  const skin = '#b87654'
+  const shadow = '#8f563f'
+
+  function stroke(path: Point[], color: string, size: number) {
+    context.beginPath()
+    context.moveTo(...path[0])
+    path.slice(1).forEach(point => context.lineTo(...point))
+    context.strokeStyle = color
+    context.lineWidth = size
+    context.stroke()
+  }
+  function ellipse(point: Point, xRadius: number, yRadius: number, color: string) {
+    context.beginPath()
+    context.ellipse(...point, xRadius, yRadius, 0, 0, Math.PI * 2)
+    context.fillStyle = color
+    context.fill()
+  }
+  function polygon(points: Point[], color: string | CanvasGradient) {
+    context.beginPath()
+    context.moveTo(...points[0])
+    points.slice(1).forEach(point => context.lineTo(...point))
+    context.closePath()
+    context.fillStyle = color
+    context.fill()
+  }
+  function leg(knee: Point, foot: Point, near: boolean) {
+    const start = sideways(hip, near ? 3.5 : -3.5)
+    stroke([start, knee], near ? skin : shadow, near ? 11 : 9)
+    stroke([knee, foot], near ? skin : shadow, near ? 8 : 7)
+    stroke([start, between(start, knee, .55)], near ? '#26353c' : '#202a30', near ? 13 : 11)
+    const toe = offset(foot, 7 * facing, 0)
+    stroke([offset(foot, -2 * facing, 2.5), offset(toe, 0, 2.5)], '#fbf9ed', 3.5)
+    stroke([foot, toe], near ? '#485455' : '#354141', 5)
+    stroke([between(foot, toe, .25), between(foot, toe, .6)], '#dce9a7', 1.25)
+  }
+  function arm(elbow: Point, hand: Point, near: boolean) {
+    const start = sideways(shoulder, near ? -width + 2 : width - 2)
+    stroke([start, elbow], near ? skin : shadow, near ? 8 : 6.5)
+    stroke([elbow, hand], near ? skin : shadow, near ? 6.5 : 5.5)
+    stroke([start, between(start, elbow, .28)], near ? '#247055' : '#154736', 10)
+    ellipse(hand, 3.5, 3.8, near ? skin : shadow)
+  }
+  function dumbbell(hand: Point) {
+    stroke([offset(hand, -9, 0), offset(hand, 9, 0)], '#46444b', 2)
+    for (const side of [-1, 1]) {
+      stroke([offset(hand, side * 8, -3), offset(hand, side * 8, 3)], '#354345', 5)
+    }
+  }
+
+  context.lineCap = 'round'
+  context.lineJoin = 'round'
+  ellipse([98, 162], 72, 3, '#174b3719')
+  if (exercise.pose === 'wall' || exercise.pose === 'incline') {
+    const y = exercise.pose === 'wall' ? 20 : 111
+    stroke([[150, y], [150, 161]], '#759479', 4)
+    if (exercise.pose === 'incline') stroke([[145, y], [176, y]], '#759479', 4)
+  }
+  leg(backKnee, backFoot, false)
+  arm(backElbow, backHand, false)
+  if (exercise.weights === 2) dumbbell(backHand)
+  leg(frontKnee, frontFoot, true)
+
+  stroke([head, shoulder], shadow, 7)
+  const shirt = context.createLinearGradient(...sideways(shoulder, width), ...sideways(shoulder, -width))
+  shirt.addColorStop(0, '#154736')
+  shirt.addColorStop(.65, '#28795b')
+  shirt.addColorStop(1, '#328869')
+  polygon([sideways(shoulder, width), sideways(shoulder, -width),
+    sideways(hip, -8), sideways(hip, 8)], shirt)
+  stroke([sideways(hip, -7), sideways(hip, 7)], '#164735', 2)
+  const chest = between(shoulder, hip, .3)
+  stroke([sideways(chest, -4), sideways(chest, -1)], '#dce9a7', 1.4)
+  arm(frontElbow, frontHand, true)
+  if (exercise.weights > 0) dumbbell(frontHand)
+
+  context.save()
+  context.translate(...head)
+  context.scale(facing, 1)
+  ellipse([0, 1], 8, 10, skin)
+  ellipse([-6.8, 1.3], 2, 2.7, skin)
+  polygon([[-7, -1], [-8, -6], [-5, -10], [1, -11], [7, -8], [8, -4], [2, -6], [-3, -3]], '#292826')
+  if (!frontView) polygon([[6, -1], [10, 2], [7, 3]], skin)
+  const chin: Point = frontView ? [0, 7] : [3, 7]
+  stroke([offset(chin, -4, -1), chin, offset(chin, 4, -2)], '#583b32', 2.4)
+  ellipse(frontView ? [-3, 0] : [4, 0], .85, .7, '#2b2725')
+  if (frontView) ellipse([3, 0], .85, .7, '#2b2725')
+  context.restore()
+}
+
 export function ExerciseDemo({ exercise, thumbnail = false }: { exercise: Exercise; thumbnail?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -56,6 +153,8 @@ export function ExerciseDemo({ exercise, thumbnail = false }: { exercise: Exerci
     const context = canvas.current?.getContext('2d')
     if (!context) return
     const [from, to] = (framePairs[exercise.pose] ?? [tall, tall]).map(frame)
+    const facing = to[0][0] < to[1][0] - 2 ? -1 : 1
+    const frontView = Math.abs(to[0][0] - to[1][0]) < 3 && Math.abs(to[2][0] - to[1][0]) < 8
     let request = 0
     const start = performance.now()
     function draw(time: number) {
@@ -63,35 +162,7 @@ export function ExerciseDemo({ exercise, thumbnail = false }: { exercise: Exerci
       const amount = playing ? (1 - Math.cos((time - start) / 420)) / 2 : .77
       const points = from.map(([x,y], i): Point => [x + (to[i][0] - x) * amount, y + (to[i][1] - y) * amount])
       context.clearRect(0, 0, 196, 175)
-      context.lineCap = 'round'
-      context.lineJoin = 'round'
-      function outline(path: Point[], color: string, width: number) {
-        if (!context) return
-        context.beginPath()
-        context.moveTo(...path[0])
-        path.slice(1).forEach(point => context.lineTo(...point))
-        context.strokeStyle = color
-        context.lineWidth = width
-        context.stroke()
-      }
-      outline([[22,161],[175,161]], '#174b3735', 1)
-      if (['wall','incline'].includes(exercise.pose)) {
-        const y = exercise.pose === 'wall' ? 20 : 111
-        outline([[150,y],[150,161]], '#174b3760', 4)
-      }
-      outline([points[1],points[9],points[10]], '#60816d', 7)
-      outline([points[2],points[7],points[8]], '#60816d', 9)
-      outline([points[1],points[2],points[3],points[4]], '#174b37', 11)
-      outline([points[1],points[5],points[6]], '#174b37', 8)
-      context.beginPath()
-      context.arc(...points[0], 9, 0, Math.PI * 2)
-      context.fillStyle = '#174b37'
-      context.fill()
-      const handIndices = exercise.weights === 1 ? [6] : exercise.weights === 2 ? [6,10] : []
-      handIndices.forEach(i => {
-        const [x,y] = points[i]
-        outline([[x - 6,y],[x + 6,y]], '#a25229', 5)
-      })
+      paintTrainer(context, points, exercise, facing, frontView)
       if (playing) request = requestAnimationFrame(draw)
     }
     draw(start)
