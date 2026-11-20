@@ -72,6 +72,14 @@ Apply the Workout Studio migration in `supabase/migrations` before deploying the
 
 Journal and Insights show separate Studio summaries. Workouts do not add to manually entered activity minutes, food calories, or the existing journal exports.
 
+### Weekly planning and quick logging
+
+Review uses Monday-to-Sunday dates and averages recorded values only, including explicit zeroes. Habit scoring uses each date's effective schedule. Before the first custom schedule, all nine original habits apply. Scheduled rest and recovery days are excluded from the habit streak. Workout planner counts come from saved assignments, and older sessions without planned-set information are marked Logged.
+
+The release migration adds the owner-only, append-only `routine_events` table and nullable workout-session metadata. Goals, schedule versions, and planner changes are projected from database order. Each edit names the revision it was made against, so a stale device cannot replace an intervening saved change. The planning outbox uses `routine-planning-v1:<user-id>`, and the workout outbox retains its existing key.
+
+Quick actions use `routine-quick-v1` and replay against the newest journal row before the timestamp-guarded save. The journal payload keeps action receipts to make retries idempotent. Undo checks that the affected values still match the original action. `routine-cloud-base-v1` retains the last confirmed snapshot for merging after a restart. Existing journal keys and stored entries remain compatible.
+
 ### Rollback
 
 Revert the migration commit on `main` and push the revert. This restores the previous Pages build workflow and republishes the Vanilla app.

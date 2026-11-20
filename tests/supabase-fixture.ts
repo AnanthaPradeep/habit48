@@ -1,6 +1,7 @@
 import { expect, type BrowserContext, type WebSocketRoute } from '@playwright/test'
 import type { Journal } from '../src/domain/journal'
 import type { WorkoutSession } from '../src/domain/workout'
+import type { RoutineEvent } from '../src/domain/routineEvents'
 import { ownerEmail } from '../src/services/config'
 
 interface Row { user_id: string; payload: Journal; updated_at: string }
@@ -16,6 +17,7 @@ export function journalBackend(initial?: Journal) {
   const writes: string[] = []
   const workoutSessions = new Map<string, WorkoutSession>()
   const workoutPlans = new Map<string, Record<string, unknown>>()
+  const planning = new Map<string, RoutineEvent>()
   const sockets = new Map<WebSocketRoute, { send(frame: Frame): void; topic: string; joinRef: string | null; bindings: Binding[] }>()
 
   function emit(type: Change, next: Row) {
@@ -31,7 +33,7 @@ export function journalBackend(initial?: Journal) {
       send(frame) // Repeated delivery must not trigger a second pull.
     }
   }
-  function emitWorkout(table: 'workout_sessions' | 'workout_plans') {
+  function emitWorkout(table: 'workout_sessions' | 'workout_plans' | 'routine_events') {
     for (const { send, topic, joinRef, bindings } of sockets.values()) {
       const ids = bindings.filter(binding => binding.table === table).map(binding => binding.id)
       if (ids.length) send([joinRef, null, topic, 'postgres_changes', { ids, data: { schema: 'public', table, type: 'INSERT',
@@ -54,7 +56,9 @@ export function journalBackend(initial?: Journal) {
           const requested = (payload.config as { postgres_changes: Omit<Binding, 'id'>[] }).postgres_changes
           const expected = topic.includes('workout-studio:') ? ['workout_sessions','workout_plans'].map(table => ({
             event: 'INSERT', schema: 'public', table, filter: 'user_id=eq.' + userId,
-          })) : ['INSERT', 'UPDATE'].map(event => ({
+          })) : topic.includes('routine-planning:') ? [{
+            event: 'INSERT', schema: 'public', table: 'routine_events', filter: 'user_id=eq.' + userId,
+          }] : ['INSERT', 'UPDATE'].map(event => ({
             event, schema: 'public', table: 'routine_journal', filter: 'user_id=eq.' + userId,
           }))
           expect(requested).toEqual(expected)
@@ -82,6 +86,17 @@ export function journalBackend(initial?: Journal) {
       }
       if (url.pathname === '/auth/v1/logout') return route.fulfill({ status: 204 })
       const authorized = request.headers().authorization === 'Bearer ' + token
+      if (authorized && url.pathname === '/rest/v1/routine_events') {
+        if (request.method() === 'POST') {
+          for (const event of request.postDataJSON() as RoutineEvent[]) {
+            if (planning.has(event.id)) continue
+            planning.set(event.id, { ...event, position: planning.size + 1 })
+            emitWorkout('routine_events')
+          }
+          return route.fulfill({ status: 204 })
+        }
+        return route.fulfill({ json: [...planning.values()] })
+      }
       if (authorized && url.pathname === '/rest/v1/rpc/save_workout_session') {
         const { workout } = request.postDataJSON() as { workout: WorkoutSession }
         if (!workoutSessions.has(workout.id)) {
@@ -93,6 +108,7 @@ export function journalBackend(initial?: Journal) {
       if (authorized && url.pathname === '/rest/v1/workout_sessions') {
         return route.fulfill({ json: [...workoutSessions.values()].map(s => ({
           id: s.id, workout_day: s.day, name: s.name, finished_at: s.finishedAt, seconds: s.seconds, energy: s.energy,
+          planned_sets: s.plannedSets, plan_id: s.planId,
           strength: s.strength, workout_sets: s.sets.map(set => ({
             position: set.position, exercise_id: set.exerciseId, reps: set.reps, kg: set.kg,
           })),

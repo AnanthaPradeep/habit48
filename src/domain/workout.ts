@@ -7,6 +7,7 @@ export interface CompletedSet { position: number; exerciseId: string; reps: numb
 export interface WorkoutSession {
   id: string; day: string; name: string; finishedAt: string; seconds: number
   energy: number | null; strength: boolean; sets: CompletedSet[]
+  plannedSets?: number; planId?: string
 }
 export interface WorkoutDraft {
   id: string; day: string; plan: WorkoutPlan; sets: CompletedSet[]
@@ -67,7 +68,19 @@ export function finishWorkout(draft: WorkoutDraft, now: number, massKg?: number)
   const estimate = massKg && massKg > 0 ? Math.round(met * massKg * seconds / 3600) : null
   const energy = estimate !== null && Number.isSafeInteger(estimate) && estimate <= 2147483647 ? estimate : null
   return { id: draft.id, day: draft.day, name: draft.plan.name, finishedAt: new Date(now).toISOString(),
-    seconds, energy, strength, sets: draft.sets }
+    seconds, energy, strength, sets: draft.sets, plannedSets: sequence(draft.plan).length, planId: draft.plan.id }
+}
+export function sessionStatus(session: WorkoutSession) {
+  return session.plannedSets === undefined ? 'Logged' : session.sets.length >= session.plannedSets ? 'Completed' : 'Partial'
+}
+export function exerciseHistory(sessions: WorkoutSession[], exerciseId: string, equipment: 'bodyweight' | 'dumbbell') {
+  const timed = exerciseById.get(exerciseId)?.timed ?? false
+  return sessions.flatMap(session => {
+    const sets = session.sets.filter(set => set.exerciseId === exerciseId && (equipment === 'dumbbell' ? set.kg > 0 : set.kg === 0))
+    if (!sets.length) return []
+    return [{ session, sets, total: sets.reduce((sum, set) => sum + set.reps, 0),
+      volume: timed || equipment === 'bodyweight' ? null : sets.reduce((sum, set) => sum + set.reps * set.kg, 0) }]
+  }).sort((a,b) => b.session.finishedAt.localeCompare(a.session.finishedAt))
 }
 export function streak(sessions: WorkoutSession[], today: string) {
   const dates = new Set(sessions.map(session => session.day))

@@ -1,4 +1,5 @@
-import { isJournal, keys, readJournal, type Entry, type Journal } from '../domain/journal'
+import { blankEntry, isJournal, keys, readJournal, type Entry, type Journal } from '../domain/journal'
+import { applyChanges, canUndoQuick, changesBetween, conflictsWith, projectQuick, uncontestedChanges, type QuickAction, type QuickInput } from '../domain/quickLog'
 import { ownerEmail, ownerUsername, publishableKey, supabaseUrl } from './config'
 import type { WatchJournal } from './realtime'
 
@@ -16,7 +17,11 @@ interface State {
   status: string
   connection: 'Live' | 'Connecting' | 'Syncing' | 'Offline'
   lastSynced: number | null
+  quick: QuickAction[]
+  lastQuick: { id: string; day: string } | null
 }
+const quickKey = 'routine-quick-v1'
+const baseKey = 'routine-cloud-base-v1'
 type Conflict = (message: string) => boolean
 // Postgres JSONB can return the same object with its keys in a different order.
 const canonical = (value: unknown) => JSON.stringify(value, (_, item: unknown) =>
@@ -34,9 +39,12 @@ export function mergeJournal(local: Journal, remote: Journal | undefined, base: 
         merged.entries[day] = entry
       }
     } else if (!equal(entry, base.entries[day])) {
-      if (!equal(theirs, base.entries[day]) && !equal(theirs, entry) &&
-        !confirm('Both devices changed ' + day + '. Keep this device version?')) continue
-      merged.entries[day] = entry
+      if (!theirs || equal(theirs, base.entries[day])) merged.entries[day] = entry
+      else {
+        const changes = changesBetween(base.entries[day] ?? blankEntry(), entry)
+        const keepCloud = conflictsWith(changes, theirs) && !confirm('Both devices changed ' + day + '. Keep this device version?')
+        merged.entries[day] = applyChanges(theirs, keepCloud ? uncontestedChanges(changes, theirs) : changes)
+      }
     }
   }
   if (base && (local.start !== base.start || local.target !== base.target)) {
@@ -70,6 +78,7 @@ export class CloudJournal {
   private observedStamp = 0
   private refreshQueued = false
   private tokenRefresh: Promise<Session> | null = null
+  private lastTap = { signature: '', at: 0 }
 
   constructor(
     private readonly local: Storage,
@@ -78,8 +87,16 @@ export class CloudJournal {
     private readonly send: typeof fetch,
     private readonly watch?: WatchJournal,
   ) {
-    this.state = { journal: readJournal(local), unlocked: false, busy: false, status: '', connection: 'Connecting', lastSynced: null }
-    this.pending = this.read(local, keys.pending) === '1'
+    this.state = { journal: readJournal(local), unlocked: false, busy: false, status: '', connection: 'Connecting', lastSynced: null,
+      quick: [], lastQuick: null }
+    try {
+      const saved = JSON.parse(this.read(local, quickKey) ?? '{}')
+      if (Array.isArray(saved.quick)) this.state.quick = saved.quick
+      if (saved.lastQuick?.id && saved.lastQuick?.day) this.state.lastQuick = saved.lastQuick
+      const base: unknown = JSON.parse(this.read(local, baseKey) ?? 'null')
+      if (isJournal(base)) this.base = base
+    } catch { /* Retain the original journal if the additional cache is unreadable. */ }
+    this.pending = this.read(local, keys.pending) === '1' || !!this.state.quick.length
   }
 
   getSnapshot = () => this.state
@@ -99,6 +116,10 @@ export class CloudJournal {
   }
   private read(storage: Storage, key: string) {
     try { return storage.getItem(key) } catch { return null }
+  }
+  private rememberBase(journal: Journal) {
+    this.base = journal
+    try { this.local.setItem(baseKey, JSON.stringify(journal)) } catch { /* Keep the current in-memory baseline. */ }
   }
   private async request<T>(path: string, method = 'GET', payload?: unknown, token?: string, prefer?: string): Promise<T> {
     const headers: Record<string, string> = { apikey: publishableKey, 'Content-Type': 'application/json' }
@@ -201,27 +222,55 @@ export class CloudJournal {
     if (!row || this.pending || !equal(row.payload, this.state.journal)) this.enqueue()
   }
   private integrate(row?: Row) {
-    this.base = row?.payload ?? null
     if (row) {
       const current = this.state.journal
       this.local.setItem(keys.beforeMerge, JSON.stringify(current))
-      const journal = mergeJournal(current, row.payload, null, this.confirm)
+      const journal = mergeJournal(current, row.payload, this.base, this.pending ? this.confirm : () => false)
       if (this.pending) {
         journal.start = current.start
         journal.target = current.target
       }
       this.local.setItem(keys.journal, JSON.stringify(journal))
+      this.rememberBase(row.payload)
       this.knownStamp = Date.parse(row.updated_at)
       this.update({ journal, lastSynced: Date.now() })
     }
     this.needsMerge = false
   }
-  saveEntry = (day: string, entry: Entry) => this.persist({
-    ...this.state.journal, entries: { ...this.state.journal.entries, [day]: entry },
-  })
+  saveEntry = (day: string, entry: Entry, baseline?: { entry: Entry | undefined }) => {
+    const current = projectQuick(this.state.journal, this.state.quick).entries[day] ?? blankEntry()
+    const merged = baseline ? applyChanges(current, changesBetween(baseline.entry ?? blankEntry(), entry)) : entry
+    if (this.state.quick.some(action => action.day === day)) {
+      return this.queueQuick(day, { kind: 'edit', changes: changesBetween(current, merged) })
+    }
+    return this.persist({ ...this.state.journal, entries: { ...this.state.journal.entries, [day]: merged } })
+  }
   hasDraftConflict = (day: string, baseline: Entry | undefined, draft: Entry) => {
-    const latest = this.state.journal.entries[day]
-    return !equal(latest, baseline) && !equal(latest, draft)
+    const latest = projectQuick(this.state.journal, this.state.quick).entries[day] ?? blankEntry()
+    return conflictsWith(changesBetween(baseline ?? blankEntry(), draft), latest)
+  }
+  quickLog = (day: string, input: QuickInput) => {
+    const signature = JSON.stringify([day, input])
+    const at = Date.now()
+    if (this.lastTap.signature === signature && at - this.lastTap.at < 900) return false
+    if (!this.queueQuick(day, input)) return false
+    this.lastTap = { signature, at }
+    return true
+  }
+  undoQuick = () => {
+    const last = this.state.lastQuick
+    if (!last || !canUndoQuick(projectQuick(this.state.journal, this.state.quick), last.day, last.id)) return false
+    return this.queueQuick(last.day, { kind: 'undo', target: last.id })
+  }
+  private queueQuick(day: string, input: QuickInput) {
+    const id = crypto.randomUUID()
+    const quick = [...this.state.quick, { ...input, day, id }]
+    const lastQuick = input.kind === 'undo' ? null : input.kind === 'edit' ? this.state.lastQuick : { day, id }
+    try { this.local.setItem(quickKey, JSON.stringify({ quick, lastQuick })) }
+    catch { this.update({ status: 'Storage unavailable or full. Export a backup.' }); return false }
+    this.update({ quick, lastQuick })
+    this.enqueue()
+    return true
   }
   saveChallenge = (start: string, target: number) => this.persist({ ...this.state.journal, start, target })
   restore = (journal: Journal) => this.persist(journal)
@@ -253,6 +302,7 @@ export class CloudJournal {
     this.update({ status: 'Syncing…' })
     try {
       let conflicts = 0
+      let keptNewer = false
       while (this.pending || this.needsMerge) {
         const session = await this.auth()
         this.refreshQueued = false
@@ -263,7 +313,7 @@ export class CloudJournal {
         }
         const revision = this.revision
         const snapshot = this.state.journal
-        const journal = mergeJournal(snapshot, old?.payload, this.base, this.confirm)
+        const journal = projectQuick(mergeJournal(snapshot, old?.payload, this.base, this.confirm), this.state.quick)
         const timestamp = Math.max(Date.now(), (Date.parse(old?.updated_at ?? '') || 0) + 1)
         const row = { user_id: session.user.id, payload: journal, updated_at: new Date(timestamp).toISOString() }
         this.writingStamp = timestamp
@@ -283,19 +333,24 @@ export class CloudJournal {
         }
         conflicts = 0
         this.knownStamp = Date.parse(result[0].updated_at)
+        const quick = this.state.quick.filter(action => !journal.quickReceipts?.[action.id])
+        keptNewer ||= this.state.quick.some(action => journal.quickReceipts?.[action.id]?.skipped)
         if (revision !== this.revision) {
           // Rebase only the edits made during the request onto the acknowledged snapshot.
           const rebased = mergeJournal(this.state.journal, journal, snapshot, () => true)
-          this.base = journal
           this.local.setItem(keys.journal, JSON.stringify(rebased))
-          this.update({ journal: rebased })
+          this.rememberBase(journal)
+          this.local.setItem(quickKey, JSON.stringify({ quick, lastQuick: this.state.lastQuick }))
+          this.update({ journal: rebased, quick })
           continue
         }
         this.local.setItem(keys.journal, JSON.stringify(journal))
+        this.rememberBase(journal)
+        this.local.setItem(quickKey, JSON.stringify({ quick, lastQuick: this.state.lastQuick }))
         this.local.removeItem(keys.pending)
-        this.base = journal
         this.pending = false
-        this.update({ journal, status: 'Saved to cloud · ' + new Date().toLocaleTimeString(), lastSynced: Date.now() })
+        this.update({ journal, quick, status: keptNewer ? 'Synced · newer saved values were kept' :
+          'Saved to cloud · ' + new Date().toLocaleTimeString(), lastSynced: Date.now() })
       }
     } catch (error) {
       this.pending = true
@@ -328,7 +383,7 @@ export class CloudJournal {
         const stamp = Date.parse(row.updated_at)
         if (stamp >= this.knownStamp) {
           if (!equal(this.state.journal, row.payload)) this.local.setItem(keys.journal, JSON.stringify(row.payload))
-          this.base = row.payload
+          this.rememberBase(row.payload)
           this.knownStamp = stamp
           this.update({ journal: row.payload, lastSynced: Date.now(), ...(manual ? { status: 'Cloud journal refreshed.' } : {}) })
         }

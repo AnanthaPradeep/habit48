@@ -10,6 +10,7 @@ export const views = [
   { id: 'today', label: 'Today', Icon: LayoutGrid },
   { id: 'journal', label: 'Journal', Icon: BookOpen },
   { id: 'workout', label: 'Workout', Icon: Dumbbell },
+  { id: 'review', label: 'Review', Icon: CalendarDays },
   { id: 'insights', label: 'Insights', Icon: ChartNoAxesColumn },
   { id: 'settings', label: 'Settings', Icon: SlidersHorizontal },
 ] as const
@@ -47,7 +48,7 @@ export function PageHeader({ view, day, theme, toggle, connection, lastSynced }:
   }, [])
   const dated = view === 'today' || view === 'journal'
   const title = view === 'journal' ? 'Daily journal' : view === 'today' ? day === today() ? 'Make today count.' : 'Daily routine'
-    : views.find(item => view === item.id)?.label
+    : view === 'review' ? 'Weekly Review' : views.find(item => view === item.id)?.label
   return <header className="page-header">
     <div><p className="eyebrow">{dated ? labelDate(day, { dateStyle: 'full' }) : 'My Routine'}</p>
       <h1 ref={heading} tabIndex={-1}>{title}</h1></div>
@@ -96,9 +97,11 @@ export function Calendar({ day, journal, move }: { day: string; journal: Journal
 }
 
 const habitIcons = [Leaf, Droplet, Flame, Soup, Soup, Footprints, Droplet, Moon, Soup]
-export function Today({ entry, day, start, onToggle }: { entry: Entry; day: string; start: string; onToggle(index: number): void }) {
-  const count = entry.h.filter(Boolean).length
-  const percent = Math.round(count / habits.length * 100)
+export function Today({ entry, day, start, due, streak, onToggle }: {
+  entry: Entry; day: string; start: string; due: readonly number[]; streak: number; onToggle(index: number): void
+}) {
+  const count = due.filter(index => entry.h[index]).length
+  const percent = due.length ? Math.round(count / due.length * 100) : 0
   const dayNumber = Math.round((Date.parse(day) - Date.parse(start)) / 86400000) + 1
   const calories = total(entry.cal)
   const reducedMotion = useReducedMotion()
@@ -111,7 +114,9 @@ export function Today({ entry, day, start, onToggle }: { entry: Entry; day: stri
     <div className="bento">
       <section className="momentum" aria-labelledby="momentumTitle">
         <div><h2 className="eyebrow" id="momentumTitle">Habit progress</h2>
-          <strong>{percent}%</strong><p>{count} of {habits.length} habits completed</p></div>
+          <strong>{due.length ? percent + '%' : 'Rest'}</strong>
+          <p>{due.length ? count + ' of ' + due.length + ' habits completed' : 'No habits scheduled today.'}</p>
+          {streak > 0 && <small>{streak} scheduled {streak === 1 ? 'day' : 'days'} in a row</small>}</div>
         <motion.div className="progress-ring" aria-hidden="true"
           style={{ '--completion': percent + '%' } as CSSProperties}
           initial={false} animate={{ scale: reducedMotion ? 1 : [1, 1.06, 1] }} transition={{ duration: 0.24 }} key={percent}>
@@ -124,8 +129,9 @@ export function Today({ entry, day, start, onToggle }: { entry: Entry; day: stri
     </div>
     <section className="panel habit-panel">
       <div className="section-heading"><div><h2>Daily habits</h2><p>{day}{dayNumber > 0 ? ' · Day ' + dayNumber : ''}</p></div>
-        <span className="pill">{count}/{habits.length} done</span></div>
-      <div id="habits">{habits.map((habit, index) => {
+        <span className="pill">{due.length ? count + '/' + due.length + ' done' : 'Rest day'}</span></div>
+      <div id="habits">{due.map(index => {
+        const habit = habits[index]
         const Icon = habitIcons[index]
         return <label className="habit" key={habit}><span className="habit-icon"><Icon aria-hidden="true" /></span>
           <span>{habit}</span><input type="checkbox" checked={Boolean(entry.h[index])} onChange={() => onToggle(index)} /></label>

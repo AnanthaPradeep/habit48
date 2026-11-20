@@ -6,6 +6,11 @@ import { body, cooldown, full, lower, upper, warmup, week, completeSet, elapsed,
   step, streak, togglePause, workoutTotals, type WorkoutDraft, type WorkoutPlan, type WorkoutSession, type PlanStep } from '../domain/workout'
 import type { WorkoutStore } from '../services/workouts'
 import { ExerciseDemo } from './ExerciseDemo'
+import { ExerciseProgress } from './ExerciseProgress'
+import { exerciseHistory, sessionStatus } from '../domain/workout'
+import { WeeklyPlanner } from './WeeklyPlanner'
+import type { EventChange, PlanSlot } from '../domain/routineEvents'
+import { slotStatus } from '../domain/planner'
 import './workout.css'
 
 type State = ReturnType<WorkoutStore['snapshot']>
@@ -36,7 +41,10 @@ function ExerciseGuide({ exercise }: { exercise: Exercise }) {
   </div>
 }
 
-export default function WorkoutStudio({ store, state, massKg }: { store: WorkoutStore; state: State; massKg: number }) {
+export default function WorkoutStudio({ store, state, massKg, planner, append, planningStatus }: {
+  store: WorkoutStore; state: State; massKg: number; planner: ReadonlyMap<string, PlanSlot>
+  append(change: EventChange): boolean; planningStatus: string
+}) {
   const [selected, select] = useState(dayIndex)
   const [preview, setPreview] = useState<WorkoutPlan | null>(null)
   const [detail, setDetail] = useState<Exercise | null>(null)
@@ -46,6 +54,11 @@ export default function WorkoutStudio({ store, state, massKg }: { store: Workout
   const [building, setBuilding] = useState(false)
   const [history, setHistory] = useState<'week' | 'month' | 'all'>('week')
   const current = week[selected]
+  const plans = [...new Map([...presetPlans, ...week.flatMap(day => day.plan ?? []), ...state.plans].map(plan => [plan.id, plan])).values()]
+  const todaySlot = selected === dayIndex() ? planner.get(today()) : undefined
+  const todayState = todaySlot ? slotStatus(todaySlot, state.sessions, today()) : null
+  const heroPlan = todaySlot ? plans.find(plan => plan.id === todaySlot.planId) : current.plan
+  const heroName = todaySlot?.name ?? heroPlan?.name ?? (todayState === 'Recovery' ? 'Recovery day' : 'Rest day')
   const matches = exercises.filter(e => (category === 'All' || category === e.equipment) &&
     (group === 'All' || group === e.group) && (e.name + ' ' + e.group).toLowerCase().includes(query.trim().toLowerCase()))
   const availablePlans = [...presetPlans, ...state.plans].filter(plan => {
@@ -67,13 +80,13 @@ export default function WorkoutStudio({ store, state, massKg }: { store: Workout
     <section className="studio-hero">
       <div><p className="eyebrow">MY ROUTINE / TRAINING</p><h2>Move with purpose.</h2><p>Build strength. Stay consistent.</p>
         <p className="eyebrow studio-today">{selected === dayIndex() ? 'TODAY’S WORKOUT' : 'WEEKLY WORKOUT'}</p>
-        <h3>{current.plan?.name ?? 'Rest day'}</h3>
-        <p>{current.plan ? `${current.detail} · ${current.plan.steps.length} exercises · Beginner-friendly` : 'Take a break and recover.'}</p>
-        {current.plan && <button onClick={() => setPreview(current.plan)}>View workout <ArrowRight size={16} /></button>}</div>
+        <h3>{heroName}</h3>
+        <p>{todayState ?? (heroPlan ? `${current.detail} · ${heroPlan.steps.length} exercises · Beginner-friendly` : 'Take a break and recover.')}</p>
+        {heroPlan && (!todayState || todayState === 'Planned') && <button onClick={() => setPreview(heroPlan)}>View workout <ArrowRight size={16} /></button>}</div>
       <ExerciseDemo exercise={exerciseById.get('goblet')!} thumbnail />
     </section>
     <p className="studio-safety"><HeartPulse size={18} />Get medical clearance before strength training if you have a history of CVST. Start gently once cleared, breathe continuously, and avoid straining.</p>
-    {state.draft && <Guided key={state.draft.id} draft={state.draft} store={store} massKg={massKg} />}
+    {state.draft && <Guided key={state.draft.id} draft={state.draft} store={store} massKg={massKg} sessions={state.sessions} />}
     {preview && <section className="panel studio-preview" aria-label="Workout preview">
       <div className="section-heading"><h2>{preview.name}</h2><button type="button" className="icon-button" aria-label="Close workout preview" onClick={() => setPreview(null)}><X /></button></div>
       <p>{preview.minutes} min planned · {sequence(preview).length} sets</p>
@@ -83,8 +96,11 @@ export default function WorkoutStudio({ store, state, massKg }: { store: Workout
       })}</ol>
       <button type="button" onClick={() => start(preview)}>Start workout</button>
     </section>}
+    <WeeklyPlanner slots={planner} plans={plans} sessions={state.sessions}
+      append={append} start={plan => { setPreview(plan); document.querySelector('.studio-hero')?.scrollIntoView({ block: 'start' }) }}
+      status={planningStatus} />
     <section className="panel studio-week">
-      <div className="section-heading"><h2><CalendarDays /> Weekly plan</h2></div>
+      <div className="section-heading"><h2><CalendarDays /> Suggested week</h2></div>
       <div className="studio-days">{week.map((day, i) => <button key={day.label} aria-pressed={selected === i}
         onClick={() => { select(i); setPreview(null) }}><strong>{day.label}</strong><span>{day.plan?.name.replace(' Strength','') ?? 'Rest'}</span><small>{day.detail}</small></button>)}</div>
       <p>Walking days include a guided indoor circuit. Use an easy walk for the remaining time if that suits your plan.</p>
@@ -123,6 +139,7 @@ export default function WorkoutStudio({ store, state, massKg }: { store: Workout
         <small>{exercise.group} · {exercise.sets} × {exercise.reps} {exercise.timed ? 'sec' : 'reps'}</small>
       </button>)}</div>
     </section>
+    <ExerciseProgress sessions={state.sessions} />
     <section className="panel">
       <div className="section-heading"><h2>Workout history</h2><label className="studio-range">Period<select value={history}
         onChange={event => setHistory(event.target.value as typeof history)}><option value="week">Last 7 days</option>
@@ -132,7 +149,7 @@ export default function WorkoutStudio({ store, state, massKg }: { store: Workout
       <p role="status">{state.status}</p>
       <p className="muted">Calorie estimates use your latest journal weight. Workout burn is separate from food calories.</p>
       {!visibleSessions.length && <p>No workouts in this period.</p>}
-      {visibleSessions.map(session => <details key={session.id} className="workout-record"><summary>{session.name} <small>{session.day} · {session.sets.length} sets</small></summary>
+      {visibleSessions.map(session => <details key={session.id} className="workout-record"><summary>{session.name} <small>{session.day} · {session.sets.length} sets · {sessionStatus(session)}</small></summary>
         <ul>{session.sets.map(set => <li key={set.position}>{exerciseById.get(set.exerciseId)?.name ?? set.exerciseId} · {set.reps} {exerciseById.get(set.exerciseId)?.timed ? 'sec' : 'reps'} · {set.kg} kg total</li>)}</ul>
       </details>)}
     </section>
@@ -153,7 +170,7 @@ function WorkoutTrend({ sessions }: { sessions: WorkoutSession[] }) {
   </figure>
 }
 
-function Guided({ draft, store, massKg }: { draft: WorkoutDraft; store: WorkoutStore; massKg: number }) {
+function Guided({ draft, store, massKg, sessions }: { draft: WorkoutDraft; store: WorkoutStore; massKg: number; sessions: WorkoutSession[] }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250)
@@ -163,6 +180,10 @@ function Guided({ draft, store, massKg }: { draft: WorkoutDraft; store: WorkoutS
   const position = draft.sets.length
   const current = order[position]
   const exercise = current ? exerciseById.get(current.exerciseId) : undefined
+  const previous = exercise ? (['bodyweight','dumbbell'] as const).flatMap(equipment => {
+    const last = exerciseHistory(sessions, exercise.id, equipment)[0]
+    return last ? [last] : []
+  }).sort((a,b) => b.session.finishedAt.localeCompare(a.session.finishedAt))[0] : undefined
   const remaining = rest(draft, now)
   const paused = draft.runningSince === null
   function finish() {
@@ -175,7 +196,10 @@ function Guided({ draft, store, massKg }: { draft: WorkoutDraft; store: WorkoutS
     <progress value={position} max={order.length} aria-label="Workout progress" />
     {remaining > 0 && <div className="studio-rest"><Timer /><strong>Rest · {secondsLabel(remaining)}</strong>
       <button className="quiet-button" type="button" onClick={() => store.draft({ ...draft, restUntil: null, pausedRest: 0 })}>Skip rest</button></div>}
-    {exercise && <><ExerciseGuide exercise={exercise} /><SetControls key={position} current={current} exercise={exercise}
+    {exercise && <><ExerciseGuide exercise={exercise} />
+      {previous && <p className="muted">Last time · {previous.session.day} · {previous.sets.map(set =>
+        set.reps + (exercise.timed ? ' sec' : ' reps') + (set.kg ? ' at ' + set.kg + ' kg total' : ' unloaded')).join(' · ')}</p>}
+      <SetControls key={position} current={current} exercise={exercise}
       disabled={paused || remaining > 0} save={(reps, kg) => {
         const next = completeSet(draft, reps, kg, Date.now())
         if (next !== draft) {

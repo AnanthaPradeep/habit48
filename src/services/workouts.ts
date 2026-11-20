@@ -11,6 +11,7 @@ type Snapshot = Local & { status: string }
 type SessionRow = {
   id: string; workout_day: string; name: string; finished_at: string; seconds: number; energy: number | null
   strength: boolean; workout_sets: { position: number; exercise_id: string; reps: number; kg: number }[]
+  planned_sets?: number | null; plan_id?: string | null
 }
 type PlanRow = { id: string; name: string; minutes: number; steps: WorkoutPlan['steps']; created_at: string }
 const empty = (): Local => ({ sessions: [], plans: [], draft: null, pendingSessions: [], pendingPlans: [] })
@@ -148,12 +149,13 @@ export class WorkoutStore {
           if (!this.persist({ pendingPlans: this.state.pendingPlans.filter(id => id !== plan.id) })) return
         }
         const [sessions, plans] = await Promise.all([
-          this.list<SessionRow>('workout_sessions?select=id,workout_day,name,finished_at,seconds,energy,strength,workout_sets(position,exercise_id,reps,kg)', token),
+          this.list<SessionRow>('workout_sessions?select=id,workout_day,name,finished_at,seconds,energy,strength,planned_sets,plan_id,workout_sets(position,exercise_id,reps,kg)', token),
           this.list<PlanRow>('workout_plans?select=id,name,minutes,steps,created_at', token),
         ])
         if (!this.active) return
         const remoteSessions = sessions.map(row => ({ id: row.id, day: row.workout_day, name: row.name,
           finishedAt: row.finished_at, seconds: row.seconds, energy: row.energy, strength: row.strength,
+          plannedSets: row.planned_sets ?? undefined, planId: row.plan_id ?? undefined,
           sets: row.workout_sets.map(s => ({ position: s.position, exerciseId: s.exercise_id, reps: s.reps, kg: s.kg }))
             .sort((a,b) => a.position - b.position) }))
         const remotePlans = plans.filter(row => row.steps.every(item => item && exerciseById.has(item.exerciseId) &&

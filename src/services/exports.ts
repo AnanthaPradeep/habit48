@@ -1,6 +1,8 @@
 import { report, type Filters } from '../domain/analytics'
 import { total } from '../domain/calories'
-import { habits, meals, metrics, percent, type Journal } from '../domain/journal'
+import { habits, meals, metrics, type Journal } from '../domain/journal'
+import { allHabits, type ScheduleFor } from '../domain/review'
+import { scheduledPercent } from '../domain/schedule'
 
 type Cell = string | number | null
 type Matrix = Cell[][]
@@ -53,17 +55,18 @@ function zip(files: Record<string, string>) {
   return new Blob([...output, ...directory, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
 
-export function workbook(journal: Journal, filters: Filters) {
-  const { rows, values } = report(journal, filters)
+export function workbook(journal: Journal, filters: Filters, scheduled: ScheduleFor = () => allHabits) {
+  const { rows, values } = report(journal, filters, scheduled)
   const headings = ['Date', ...habits, ...meals, ...metrics, 'Notes', 'Habit %', 'Logged calories (kcal)', 'Calorie breakdown']
   const entries: Matrix = [headings, ...rows.map(([day, entry]): Cell[] => {
     const calories = total(entry.cal)
+    const completion = scheduledPercent(entry, scheduled(day))
     return [day, ...entry.h.map(done => done ? 'Yes' : 'No'), ...entry.f, ...entry.m, entry.notes,
-      Math.round(percent(entry)), calories === null ? '' : Math.round(calories),
+      completion === null ? '' : Math.round(completion), calories === null ? '' : Math.round(calories),
       (entry.cal ?? []).map(item => item.meal + ': ' + item.name + ' × ' + item.qty + ' = ' + Math.round(item.qty * item.rate) + ' kcal').join('; ')]
   })]
   const summary: Matrix = [['Period', 'Logged days', 'Average habit %', 'Strength days', 'Average logged kcal'],
-    ...values.map(value => [value.key, value.count, Math.round(value.habit), value.strength, value.calories === null ? '' : Math.round(value.calories)])]
+    ...values.map(value => [value.key, value.count, value.habit === null ? '' : Math.round(value.habit), value.strength, value.calories === null ? '' : Math.round(value.calories)])]
   return zip({
     '[Content_Types].xml': '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
     '_rels/.rels': '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',

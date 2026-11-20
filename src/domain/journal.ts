@@ -1,3 +1,5 @@
+import type { QuickReceipt } from './quickLog'
+
 export const habits = [
   'Avoid added sugar', 'Avoid sugarcane & sweetened juice', 'Reduce fried food', 'Limit porotta',
   'Moderate protein', 'Walk 30–45 minutes', 'Adequate water', 'Sleep 7–9 hours', 'Light timely dinner',
@@ -22,6 +24,7 @@ export interface Journal {
   start: string
   target: number
   entries: Record<string, Entry>
+  quickReceipts?: Record<string, QuickReceipt>
 }
 
 function isoDate(date: Date) {
