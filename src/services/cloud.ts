@@ -83,6 +83,11 @@ export class CloudJournal {
   }
 
   getSnapshot = () => this.state
+  workoutOwner = () => this.state.unlocked ? this.session?.user.id : undefined
+  workoutToken = async () => {
+    if (!this.state.unlocked) throw Error('Sign in first')
+    return (await this.auth()).access_token
+  }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
     return () => { this.listeners.delete(listener) }

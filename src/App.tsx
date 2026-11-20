@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 import { Login, Splash } from './components/Branding'
 import { Calendar, PageHeader, Sidebar, Today, getView } from './components/Dashboard'
@@ -10,6 +10,9 @@ import { blankEntry, shift, today, validDate, type Entry } from './domain/journa
 import type { Filters } from './domain/analytics'
 import { useTheme } from './hooks/useTheme'
 import { CloudJournal } from './services/cloud'
+import { WorkoutStore } from './services/workouts'
+import { workoutTotals } from './domain/workout'
+const WorkoutStudio = lazy(() => import('./components/WorkoutStudio'))
 
 export function App({ cloud }: { cloud: CloudJournal }) {
   const state = useSyncExternalStore(cloud.subscribe, cloud.getSnapshot)
@@ -35,16 +38,17 @@ export function App({ cloud }: { cloud: CloudJournal }) {
   return <>
     <Splash />
     {state.unlocked
-      ? <Workspace cloud={cloud} state={state} theme={theme} toggle={toggle} />
+      ? <Workspace key={cloud.workoutOwner()} owner={cloud.workoutOwner()!} cloud={cloud} state={state} theme={theme} toggle={toggle} />
       : <Login busy={state.busy} status={state.status} login={cloud.login} />}
   </>
 }
 
-function Workspace({ cloud, state, theme, toggle }: {
+function Workspace({ cloud, state, theme, toggle, owner }: {
   cloud: CloudJournal
   state: ReturnType<CloudJournal['getSnapshot']>
   theme: 'light' | 'dark'
   toggle(): void
+  owner: string
 }) {
   const { journal, status } = state
   const [view, setView] = useState(getView)
@@ -54,6 +58,13 @@ function Workspace({ cloud, state, theme, toggle }: {
   const [formStatus, setFormStatus] = useState('')
   const [filters, setFilters] = useState<Filters>(() => ({ from: shift(today(), -30), to: today(), period: 'daily', metric: 'habit' }))
   const [printFilters, setPrintFilters] = useState<Filters | null>(null)
+  const workout = useMemo(() => new WorkoutStore(owner, cloud.workoutToken), [owner, cloud])
+  const workouts = useSyncExternalStore(workout.subscribe, workout.snapshot)
+  useEffect(() => workout.mount(), [workout])
+  const dailyWorkouts = workoutTotals(workouts.sessions.filter(session => session.day === day))
+  const rangeWorkouts = workoutTotals(workouts.sessions.filter(session => session.day >= filters.from && session.day <= filters.to))
+  const massKg = Number(Object.entries(journal.entries).filter(([, entry]) => Number(entry.m[3]) > 0)
+    .sort(([a], [b]) => b.localeCompare(a))[0]?.[1].m[3])
   const saved = journal.entries[day]
   const current = draft?.entry ?? saved ?? blankEntry()
   const inferred = draft || current.cal?.length ? null : estimateCalories(current.f)
@@ -125,8 +136,21 @@ function Workspace({ cloud, state, theme, toggle }: {
         <DailyJournal entry={entry} warnings={warnings ?? inferred?.warnings ?? []} changeEntry={changeEntry}
           changeMeal={(index, value) => recalculate(entry.f.map((text, i) => i === index ? value : text))}
           recalculate={() => recalculate(entry.f)} />
+        {dailyWorkouts.count > 0 && <section className="panel workout-summary" aria-label="Workout Studio summary">
+          <h2>Workout Studio summary</h2><p>{dailyWorkouts.count} workouts · {dailyWorkouts.minutes} min · {dailyWorkouts.sets} sets</p>
+          <a href="#workout">Open workout history</a>
+        </section>}
       </div>
-      {view === 'insights' && <Insights journal={journal} filters={filters} change={setFilters} print={print} />}
+      {view === 'workout' && <Suspense fallback={<p role="status">Loading Workout Studio…</p>}>
+        <WorkoutStudio store={workout} state={workouts} massKg={massKg} />
+      </Suspense>}
+      {view === 'insights' && <><Insights journal={journal} filters={filters} change={setFilters} print={print} />
+        {rangeWorkouts.count > 0 && <section className="panel workout-summary" aria-label="Workout Studio activity">
+          <h2>Workout Studio activity</h2><p>{rangeWorkouts.count} workouts · {rangeWorkouts.minutes} min · {rangeWorkouts.sets} sets
+            {rangeWorkouts.energy === null ? '' : ' · ' + rangeWorkouts.energy + ' estimated kcal burned'}</p>
+          <p>Studio activity is shown separately from manually logged activity and food calories.</p>
+        </section>}
+      </>}
       {view === 'settings' && <Settings journal={journal} status={status}
         saveChallenge={(start, target) => discard() && cloud.saveChallenge(start, target)}
         restore={backup => discard() && cloud.restore(backup)}

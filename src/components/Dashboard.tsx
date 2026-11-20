@@ -1,5 +1,5 @@
 import { CalendarDays, ChartNoAxesColumn, ChevronLeft, ChevronRight, LayoutGrid, BookOpen, SlidersHorizontal, Moon, Sun,
-  Check, Flame, Footprints, Leaf, Droplet, Soup } from 'lucide-react'
+  Check, Flame, Footprints, Leaf, Droplet, Soup, Dumbbell } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { labelDate, shift, monday, today, habits, numberLabel, type Entry, type Journal } from '../domain/journal'
@@ -9,6 +9,7 @@ import { logo } from './Branding'
 export const views = [
   { id: 'today', label: 'Today', Icon: LayoutGrid },
   { id: 'journal', label: 'Journal', Icon: BookOpen },
+  { id: 'workout', label: 'Workout', Icon: Dumbbell },
   { id: 'insights', label: 'Insights', Icon: ChartNoAxesColumn },
   { id: 'settings', label: 'Settings', Icon: SlidersHorizontal },
 ] as const

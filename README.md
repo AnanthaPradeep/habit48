@@ -45,7 +45,7 @@ The Vanilla deployment is backed up at [codex/backup-vanilla-4d88d60](https://gi
 | localStorage | `routine-theme` | `light` or `dark`. Absent values follow the system setting. |
 | sessionStorage | `routine-session` | Existing authenticated Supabase session representation. |
 
-The repository has no database migrations or RLS definitions. A read-only production metadata query confirmed `user_id uuid`, `payload jsonb`, `updated_at timestamptz`, and enabled RLS with the existing `own_insert`, `own_read`, `own_update`, and `single_owner_only` policies. The migration used the existing project, account, REST endpoints, and bearer-token flow. Verification used isolated fixtures for password login and authenticated reads and writes.
+The journal schema and policies are managed in Supabase. A read-only production metadata query confirmed `user_id uuid`, `payload jsonb`, `updated_at timestamptz`, and enabled RLS with the existing `own_insert`, `own_read`, `own_update`, and `single_owner_only` policies. The frontend migration used the existing project, account, REST endpoints, and bearer-token flow. Verification used isolated fixtures for password login and authenticated reads and writes.
 
 ### Implementation
 
@@ -63,6 +63,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.routine_journal;
 ```
 
 Each signed-in client subscribes to INSERT and UPDATE for its user ID. Events trigger a read of the latest row, while saved edits continue through the timestamp-guarded write queue. Duplicate events and echoes of the client's own writes are ignored. Reconnecting or returning to the tab catches up on changes made while away. Incoming state updates leave in-progress journal and challenge edits open, with a conflict choice if the underlying saved data changed.
+
+### Workout Studio
+
+The Workout tab includes a 40-exercise library, original schematic form animations, weekly plans, a rest timer, custom workouts, and history. Exercise detail links point to [NHS exercise videos](https://www.nhs.uk/live-well/exercise/strength-and-flex-exercise-plan-how-to-videos/) or the [ACE Exercise Library](https://www.acefitness.org/resources/everyone/exercise-library/). Estimated expenditure uses your latest recorded weight and broad [Compendium of Physical Activities](https://pacompendium.com/conditioning-exercise/) MET values. It is omitted when there is no recorded weight.
+
+Apply the Workout Studio migration in `supabase/migrations` before deploying the frontend. Owner-only RLS controls sessions, sets, and custom plans. The authenticated, security-invoker RPC writes each finished session and its sets in one transaction and accepts safe retries. Saves and custom plans remain in an account-scoped offline queue until they sync. The open workout draft stays on its device. Completed workouts and custom plans sync through authenticated Realtime and REST.
+
+Journal and Insights show separate Studio summaries. Workouts do not add to manually entered activity minutes, food calories, or the existing journal exports.
 
 ### Rollback
 

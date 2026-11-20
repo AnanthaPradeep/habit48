@@ -86,6 +86,7 @@ body:has(#loginGate) #root { width: min(100%, 420px); }
 .navigation a:hover { background: var(--soft); }
 .navigation a svg { width: 21px; height: 21px; flex-shrink: 0; }
 .navigation a[aria-current] { background: var(--lime); color: var(--forest); }
+.workout-summary { margin-top: .65rem; }
 .sidebar-summary { margin-top: auto; padding: .8rem .4rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
 .workspace { width: 100%; max-width: 1260px; margin: 0 auto; padding: clamp(20px, 4vw, 56px); }
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 24px; }
@@ -185,7 +186,7 @@ summary { cursor: pointer; font-weight: 650; }
   .brand img { width: 36px; height: 36px; border-radius: 10px; }
   .brand small, .sidebar-summary { display: none; }
   .navigation {
-    position: fixed; z-index: 10; bottom: 0; inset-inline: 0; grid-template-columns: repeat(4, 1fr);
+    position: fixed; z-index: 10; bottom: 0; inset-inline: 0; grid-template-columns: repeat(5, 1fr);
     gap: 4px; background: var(--surface); border-top: 1px solid var(--line);
     padding: 5px 8px max(5px, env(safe-area-inset-bottom));
   }
