@@ -1,3 +1,6 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 :root {
   color-scheme: light;
   --forest: #174b37;
@@ -60,11 +63,14 @@ progress { width: 100%; accent-color: var(--accent); }
 .row { display: flex; gap: .65rem; flex-wrap: wrap; }
 .row > * { flex: 1 1 130px; margin: 0; }
 #loginGate { background: var(--surface); color: var(--ink); }
+body:has(#loginGate) #root { width: min(100%, 420px); }
+#loginGate h1 { margin: 0 0 .35rem; }
+#loginGate .password-wrap input { padding-right: 54px; }
 :root[data-theme="dark"] body:has(#loginGate:not([hidden])) { background: var(--canvas); }
 :root[data-theme="dark"] #loginGate :is(.login-sub, .login-footer, #loginStatus, .login-brand span, #passwordToggle) { color: var(--muted); }
 
 #privateApp { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100dvh; }
-#habitSymbols { position: absolute; }
+
 .sidebar {
   position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 2.6rem;
   padding: 28px 19px; background: var(--surface); border-right: 1px solid var(--line);
@@ -73,8 +79,13 @@ progress { width: 100%; accent-color: var(--accent); }
 .brand img { border-radius: 14px; }
 .brand small { display: block; color: var(--muted); font-size: .74rem; font-weight: 500; letter-spacing: 0; }
 .navigation { display: grid; gap: .4rem; }
-.navigation button { display: flex; align-items: center; gap: .8rem; text-align: left; color: var(--muted); background: transparent; padding: .75rem; }
-.navigation button[aria-current] { background: var(--lime); color: var(--forest); }
+.navigation a {
+  display: flex; align-items: center; gap: .8rem; text-align: left; color: var(--muted);
+  padding: .75rem; border-radius: 12px; text-decoration: none; font-weight: 650; min-height: 44px;
+}
+.navigation a:hover { background: var(--soft); }
+.navigation a svg { width: 21px; height: 21px; flex-shrink: 0; }
+.navigation a[aria-current] { background: var(--lime); color: var(--forest); }
 .sidebar-summary { margin-top: auto; padding: .8rem .4rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
 .workspace { width: 100%; max-width: 1260px; margin: 0 auto; padding: clamp(20px, 4vw, 56px); }
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 24px; }
@@ -88,7 +99,7 @@ progress { width: 100%; accent-color: var(--accent); }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: .65rem; }
 .section-heading p { font-size: .83rem; margin-top: .25rem; }
 .calendar { margin-bottom: 16px; }
-body:not([data-view="today"], [data-view="journal"]) :is(.calendar, .save-bar) { display: none; }
+
 .calendar-actions { display: flex; gap: .25rem; align-items: center; }
 .week-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: clamp(3px, 1vw, 10px); margin-top: 13px; }
 .week-days button { color: var(--ink); background: var(--soft); padding: .55rem 0 .4rem; display: grid; place-items: center; }
@@ -154,6 +165,7 @@ summary { cursor: pointer; font-weight: 650; }
 .chart p { margin: .75rem 0 .3rem; }
 #cloud { margin-bottom: 1rem; }
 #cloud button { margin-top: .5rem; }
+.challenge-form + p { margin-top: .65rem; }
 .save-bar { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; margin-top: 16px; color: var(--muted); }
 #printReport { display: none; }
 
@@ -171,8 +183,8 @@ summary { cursor: pointer; font-weight: 650; }
     gap: 4px; background: var(--surface); border-top: 1px solid var(--line);
     padding: 5px 8px max(5px, env(safe-area-inset-bottom));
   }
-  .navigation button { flex-direction: column; text-align: center; justify-content: center; gap: 1px; font-size: .7rem; padding: 4px 0; }
-  .navigation button svg { width: 19px; height: 19px; }
+  .navigation a { flex-direction: column; text-align: center; justify-content: center; gap: 1px; font-size: .7rem; padding: 4px 0; }
+  .navigation a svg { width: 19px; height: 19px; }
   .workspace { padding: 18px 13px calc(76px + env(safe-area-inset-bottom)); }
   .page-header { margin-bottom: 15px; }
   .journal-grid, .settings-grid { grid-template-columns: 1fr; }
@@ -189,4 +201,5 @@ summary { cursor: pointer; font-weight: 650; }
   #privateApp > #printReport { display: block; overflow-wrap: anywhere; }
   #printReport .bar { display: none; }
   #printReport h2 { margin: .75rem 0 .25rem; break-after: avoid; }
+  #printReport li { break-inside: avoid; }
 }

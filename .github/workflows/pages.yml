@@ -19,14 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - run: |
-          mkdir -p site
-          cp -r brand site/
-          cp index.html routine.css routine-ui.js manifest.webmanifest sw.js site/
-          base64 -d icon-192.b64 > site/icon-192.png
-          base64 -d icon-512.b64 > site/icon-512.png
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test && npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: dist
       - uses: actions/deploy-pages@v4
         id: deployment

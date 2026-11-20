@@ -1,0 +1,186 @@
+import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+import { blankEntry, keys, today, type Journal } from '../src/domain/journal'
+import { ownerEmail, ownerUsername } from '../src/services/config'
+
+async function mockSupabase(context: BrowserContext, initial?: Journal) {
+  let row = initial ? { user_id: 'test-user', payload: initial, updated_at: new Date().toISOString() } : undefined
+  let offline = false
+  const writes: string[] = []
+  await context.route(/^https:\/\/[^/]+\.supabase\.co\//, async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (offline) return route.abort('internetdisconnected')
+    if (url.pathname === '/auth/v1/token') {
+      const body = request.postDataJSON()
+      if (url.searchParams.get('grant_type') === 'password' && (body.email !== ownerEmail || body.password !== 'sample-password')) {
+        return route.fulfill({ status: 400, json: { msg: 'Invalid login credentials' } })
+      }
+      return route.fulfill({ json: { user: { id: 'test-user', email: ownerEmail }, access_token: 'sample-access',
+        refresh_token: 'sample-refresh', expires_at: Math.floor(Date.now() / 1000) + 3600 } })
+    }
+    if (url.pathname === '/auth/v1/logout') return route.fulfill({ status: 204 })
+    if (url.pathname !== '/rest/v1/routine_journal' || request.headers().authorization !== 'Bearer sample-access') {
+      return route.fulfill({ status: 401, json: { message: 'Unexpected request in isolated test' } })
+    }
+    const method = request.method()
+    if (method === 'PATCH' && url.searchParams.get('updated_at') !== 'eq.' + row?.updated_at) return route.fulfill({ json: [] })
+    if (method === 'POST' || method === 'PATCH') {
+      row = request.postDataJSON()
+      writes.push(method)
+    }
+    return route.fulfill({ json: row ? [row] : [] })
+  })
+  return { payload: () => row?.payload, writes, offline(value: boolean) { offline = value } }
+}
+
+async function login(page: Page) {
+  await page.locator('#splash').waitFor({ state: 'hidden' })
+  await page.getByLabel('Username').fill(ownerUsername.toUpperCase())
+  await page.getByLabel('Password', { exact: true }).fill('sample-password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('main')).toBeVisible()
+}
+const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole('link', { name, exact: true }).click()
+const current = (page: Page) => page.getByLabel('Jump to date').inputValue()
+const syncDone = (page: Page) => page.waitForFunction(key => !localStorage.getItem(key), keys.pending)
+
+test('signed-out access, username gate, password visibility and sign-out', async ({ page, context }) => {
+  await mockSupabase(context)
+  await page.goto('./')
+  await expect(page.getByRole('main')).toHaveCount(0)
+  await page.locator('#splash').waitFor({ state: 'hidden' })
+  await page.getByLabel('Username').fill('invalid-user')
+  const password = page.getByLabel('Password', { exact: true })
+  await password.fill('sample-password')
+  await page.getByRole('button', { name: 'Show password' }).click()
+  await expect(password).toHaveAttribute('type', 'text')
+  await page.getByRole('button', { name: 'Hide password' }).click()
+  await expect(password).toHaveAttribute('type', 'password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.locator('#loginStatus')).toContainText('Invalid username or password')
+  await login(page)
+  await syncDone(page)
+  await nav(page, 'Settings')
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.locator('#loginStatus')).toContainText('Signed out')
+  expect(await page.evaluate(key => sessionStorage.getItem(key), keys.session)).toBeNull()
+})
+
+test('migrates existing records, saves journal, charts periods and round-trips exports', async ({ page, context }, testInfo) => {
+  const seed: Journal = { start: today(), target: 48, entries: { [today()]: { ...blankEntry(), notes: 'Existing browser record' } } }
+  delete seed.entries[today()].cal
+  const cloud = await mockSupabase(context)
+  await page.addInitScript(({ key, value }) => {
+    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value))
+  }, { key: keys.journal, value: seed })
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('./')
+  await login(page)
+  await syncDone(page)
+  await expect(page.getByRole('group', { name: 'Days of the selected week' }).getByRole('button')).toHaveCount(7)
+  const day = await current(page)
+  await page.getByRole('button', { name: 'Next week' }).click()
+  expect(await current(page)).not.toBe(day)
+  await page.getByRole('button', { name: 'Previous week' }).click()
+  expect(await current(page)).toBe(day)
+  await page.getByRole('checkbox', { name: 'Avoid added sugar' }).check()
+  await expect(page.getByText('11%', { exact: true })).toBeVisible()
+  await nav(page, 'Journal')
+  const notes = page.getByLabel('Notes')
+  await expect(notes).toHaveValue('Existing browser record')
+  await page.getByRole('textbox', { name: 'Breakfast', exact: true }).fill('4 idiyappam + 1 egg curry')
+  await page.getByRole('textbox', { name: 'Lunch', exact: true }).fill('rice (100 g)')
+  await expect(page.locator('#calorieSummary')).toHaveText('580 kcal')
+  await page.getByText('Breakdown and manual adjustments').click()
+  await page.getByLabel('Food', { exact: true }).selectOption({ label: 'Banana (1 medium)' })
+  await page.getByLabel('Meal', { exact: true }).selectOption('Snacks')
+  await page.getByRole('button', { name: 'Add food' }).click()
+  await expect(page.locator('#calorieSummary')).toHaveText('685 kcal')
+  await page.getByText('Banana (1 medium) ×').getByRole('button', { name: 'Remove' }).click()
+  await page.getByLabel('Walking (min)', { exact: true }).fill('35')
+  await notes.fill('Edited isolated test record')
+  await page.getByRole('button', { name: 'Save day' }).click()
+  await expect(page.locator('.save-bar')).toContainText('Saved')
+  await syncDone(page)
+  expect(cloud.payload()?.entries[day]).toMatchObject({ h: [true, false, false, false, false, false, false, false, false], notes: 'Edited isolated test record' })
+  expect(cloud.writes).toEqual(['POST', 'PATCH'])
+  await page.getByRole('button', { name: 'Toggle dark theme' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  expect(await page.getByRole('navigation').evaluate(el => getComputedStyle(el).position)).toBe(testInfo.project.name === 'mobile' ? 'fixed' : 'static')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(await page.evaluate(() => window.innerWidth))
+  await nav(page, 'Insights')
+  await page.getByLabel('Chart metric').selectOption('cal')
+  for (const period of ['daily', 'weekly', 'monthly']) await page.getByLabel('Report period').selectOption(period)
+  await page.getByText('View chart data').click()
+  await expect(page.getByText(/580\.0 · 1 logged day/)).toBeVisible()
+  const excelEvent = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export Excel' }).click()
+  const excel = await excelEvent
+  expect(excel.suggestedFilename()).toBe('my-routine.xlsx')
+  const excelBytes = await readFile(await excel.path())
+  expect(excelBytes.toString()).toContain('Edited isolated test record')
+  await page.evaluate(() => { window.print = () => { document.documentElement.dataset.printed = 'yes' } })
+  await page.getByRole('button', { name: 'Print / Save PDF' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-printed', 'yes')
+  await page.emulateMedia({ media: 'print' })
+  await expect(page.locator('#printReport')).toContainText('Edited isolated test record')
+  await expect(page.getByRole('navigation')).toBeHidden()
+  expect((await page.pdf()).subarray(0, 4).toString()).toBe('%PDF')
+  await page.emulateMedia({ media: 'screen' })
+  await nav(page, 'Settings')
+  await expect(page.getByText(/1\/48 challenge days/)).toBeVisible()
+  const backupEvent = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export JSON' }).click()
+  const backup = await backupEvent
+  expect(backup.suggestedFilename()).toBe('my-routine.json')
+  const backedUp = JSON.parse(await readFile(await backup.path(), 'utf8')) as Journal
+  backedUp.entries[day].notes = 'Restored test backup'
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#file').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backedUp)) })
+  await expect(page.getByText('Backup restored.')).toBeVisible()
+  await syncDone(page)
+  await page.getByRole('button', { name: 'Refresh from cloud' }).click()
+  await expect(page.locator('#cloudStatus')).toHaveText('Cloud journal refreshed.')
+  await page.reload()
+  await expect(page.getByRole('main')).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.locator('#splash').waitFor({ state: 'hidden' })
+  await nav(page, 'Journal')
+  await expect(notes).toHaveValue('Restored test backup')
+  expect(errors).toEqual([])
+})
+
+test('loads the installed shell offline, queues edits and resyncs', async ({ page, context }) => {
+  const cloud = await mockSupabase(context)
+  await page.goto('./')
+  await login(page)
+  await syncDone(page)
+  const day = await current(page)
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+  const cache = await page.evaluate(async () => {
+    const keys = await caches.keys()
+    const app = keys.find(key => key.startsWith('habit48-react-'))
+    return app ? (await (await caches.open(app)).keys()).map(request => request.url) : []
+  })
+  expect(cache.some(url => url.endsWith('/manifest.webmanifest'))).toBe(true)
+  expect(cache.every(url => url.startsWith('http://127.0.0.1:4173/habit48/'))).toBe(true)
+  cloud.offline(true)
+  await context.setOffline(true)
+  await page.reload()
+  await expect(page.getByRole('main')).toBeVisible()
+  await page.locator('#splash').waitFor({ state: 'hidden' })
+  await nav(page, 'Journal')
+  await page.getByLabel('Notes').fill('Saved offline')
+  await page.getByRole('button', { name: 'Save day' }).click()
+  await expect(page.locator('.save-bar')).toContainText('Saved')
+  await nav(page, 'Settings')
+  await expect(page.locator('#cloudStatus')).toContainText('Cloud sync pending')
+  expect(await page.evaluate(key => localStorage.getItem(key), keys.pending)).toBe('1')
+  cloud.offline(false)
+  await context.setOffline(false)
+  await expect(page.locator('#cloudStatus')).toContainText('Saved to cloud')
+  await syncDone(page)
+  expect(cloud.payload()?.entries[day].notes).toBe('Saved offline')
+})

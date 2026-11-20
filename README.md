@@ -1,2 +1,69 @@
-# habit48
-Habit48
+# My Routine
+
+My Routine is a private wellness journal published at [GitHub Pages](https://ananthapradeep.github.io/habit48/).
+
+## Development and verification
+
+Use Node.js 22 in CI. The local minimum is Node.js 20.19.
+
+```sh
+npm ci
+npm run dev
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Playwright runs the production build at `/habit48/` in desktop and mobile projects. All Supabase requests in the suite are intercepted and served from isolated fixtures. Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed Chromium-based browser. GitHub Actions runs the checks and publishes `dist/`.
+
+## Migration audit
+
+The Vanilla deployment is backed up at [codex/backup-vanilla-4d88d60](https://github.com/AnanthaPradeep/habit48/tree/codex/backup-vanilla-4d88d60). Its runtime was a single inline script plus one UI helper and stylesheet, with browser APIs for storage, downloads, printing, and Supabase REST. The workflow previously copied static files and decoded base64 icons.
+
+| Area | Preserved contract |
+| --- | --- |
+| Journal | Nine ordered habit flags, five meal text fields, five ordered activity metrics, notes, and optional calorie entries. Date keys are local calendar dates in `YYYY-MM-DD`. The selected day can be changed by week, individual day, or date input. Unsaved edits require confirmation before switching days or saving challenge settings. |
+| Challenge | `{ start, target, entries }` with target `0` for an unlimited journal. Counts include saved days within the challenge window. Logging continues after a fixed challenge. |
+| Food | Existing catalog, aliases, serving assumptions, unknown-food warnings, meal totals, and add/remove/recalculate controls. Saved entries without calorie items can recalculate a display estimate from meal text. Reports use saved calorie items. |
+| Analytics | Inclusive date ranges, Monday-start week buckets, calendar months, and averages over logged values. Blank metrics are omitted and zero is counted. Habit percentages use all nine habits. |
+| Exports | `my-routine.xlsx` with Journal and Summary sheets, browser print/PDF report, and `my-routine.json` with confirmed restoration. |
+| Sign-in | Existing case-insensitive username gate, password grant, owner-account check, token refresh, and local-scope logout. The browser uses the existing publishable Supabase configuration. |
+| Cloud | `public.routine_journal` via PostgREST, addressed by authenticated `user_id`, with `payload` and `updated_at`. Authenticated requests use the current bearer token. Writes use a timestamp-guarded PATCH when the row exists and POST otherwise. Independent edits merge, and same-day conflicts prompt for the chosen version. |
+| Branding and PWA | Original logo, icons, heartbeat animation, manifest identity and scope, responsive navigation, and theme preference. |
+
+### Browser storage
+
+| Location | Key | Format |
+| --- | --- | --- |
+| localStorage | `myroutine-v1` | Date-keyed journal. Each day has `h`, `f`, `m`, `notes`, and optional `cal` with `{ meal, name, qty, rate }` items. |
+| localStorage | `habit48` | Original start date and ordinal challenge entries. Used when a current journal is absent, with ordinal day 1 mapped to the start date. |
+| localStorage | `routine-before-merge` | Journal snapshot before the initial cloud merge. |
+| localStorage | `routine-pending` | The string `1` for a saved local change awaiting synchronization. |
+| localStorage | `routine-theme` | `light` or `dark`. Absent values follow the system setting. |
+| sessionStorage | `routine-session` | Existing authenticated Supabase session representation. |
+
+The repository has no database migrations or RLS definitions. A read-only production metadata query confirmed `user_id uuid`, `payload jsonb`, `updated_at timestamptz`, and enabled RLS with the existing `own_insert`, `own_read`, `own_update`, and `single_owner_only` policies. The migration used the existing project, account, REST endpoints, and bearer-token flow. Verification used isolated fixtures for password login and authenticated reads and writes.
+
+### Implementation
+
+- `src/domain` holds journal types, calendar and challenge rules, the calorie parser, and report aggregation.
+- `src/services` holds Supabase session and sync logic and export generation. The sync queue retries compare-and-swap conflicts and rebases edits made during an in-flight write.
+- `src/components` and `src/hooks` hold React views and theme behavior. Tailwind utilities complement the existing palette and layout. Lucide provides icons, Recharts renders insights, and Motion animates progress with reduced-motion support.
+- `scripts/build-worker.mjs` generates a service worker with a content-derived cache version. Online navigation revalidates HTML. Offline navigation uses the precached shell. Only allowlisted public build assets are precached, and authenticated requests stay outside the worker cache. A tab with an unexpired cached session can reopen the journal offline and sync saved changes on reconnect.
+
+### Rollback
+
+Revert the migration commit on `main` and push the revert. This restores the previous Pages build workflow and republishes the Vanilla app.
+
+```sh
+git switch main
+git pull --ff-only origin main
+git log --oneline --grep="Migrate My Routine to React"
+git revert <migration-commit>
+git push origin main
+```
+
+Wait for the Pages workflow to succeed and reload the production URL while online so the browser can pick up the restored worker. Keep browser storage intact. Both versions read the same journal and session keys, and the backup branch provides the exact pre-migration source.
