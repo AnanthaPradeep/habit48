@@ -73,7 +73,7 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
         return <span key={day} data-level={level} title={day + ' · ' + description} aria-label={day + ' · ' + description}>{Number(day.slice(-2))}</span>
       })}
     </div>
-    <p>Peach below 50% · Lime 50–89% · Forest 90–100% · Lilac rest · Grey no data</p>
+    <p>Rose below 50% · Opal 50–89% · Deep mineral 90–100% · Blue rest · Neutral no data</p>
     <h3>Habit consistency trend</h3>
     <div className="progress-grid">{Array.from({ length: Math.ceil(current.days.length / 7) }, (_, index) => {
       const block = (days: typeof current.days) => {

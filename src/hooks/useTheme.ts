@@ -21,8 +21,9 @@ export function useTheme() {
   }, [])
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
     const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-    if (meta) meta.content = theme === 'dark' ? '#15241d' : '#174B37'
+    if (meta?.dataset[theme]) meta.content = meta.dataset[theme]
   }, [theme])
   function toggle() {
     const next = theme === 'dark' ? 'light' : 'dark'

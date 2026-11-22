@@ -1,11 +1,11 @@
 .progress-module { display:grid; gap:1rem; margin-block:1rem; }
-.progress-banner { background:#174b37; color:#f7f6ef; border-radius:1.35rem; padding:clamp(1rem,4vw,2.2rem); }
+.progress-banner { background:var(--hero); color:var(--hero-text); border-radius:1.35rem; padding:clamp(1rem,4vw,2.2rem); }
 .progress-banner h3 { font-size:clamp(1.75rem,5vw,3rem); margin:.25rem 0; }
 .progress-banner p { margin:.2rem 0; }
 .progress-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap:.75rem; }
 .progress-tile { min-width:0; border:1px solid currentColor; border-color:color-mix(in srgb,currentColor 17%,transparent); border-radius:1rem; padding:1rem; }
 .progress-tile h3 { margin:.25rem 0; }
-.progress-tile progress { width:100%; accent-color:#548b60; }
+.progress-tile progress { width:100%; accent-color:var(--progress-fill); }
 .progress-tile p strong { float:right; }
 .progress-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:.75rem; }
 .progress-form label, .progress-tile label { display:grid; gap:.35rem; }
@@ -15,14 +15,14 @@
 .month-heatmap { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.3rem; max-width:36rem; }
 .month-heatmap > span { min-height:2rem; display:grid; place-items:center; border-radius:.35rem; font-size:.8rem; }
 .month-heatmap [data-level] { background:color-mix(in srgb,currentColor 8%,transparent); }
-.month-heatmap [data-level="low"] { background:#f2dfc8; color:#174b37; }
-.month-heatmap [data-level="mid"] { background:#dce9a7; color:#174b37; }
-.month-heatmap [data-level="high"] { background:#174b37; color:#f7f6ef; }
-.month-heatmap [data-level="rest"] { background:#e5dfed; color:#174b37; }
+.month-heatmap [data-level="low"] { background:var(--tone-rose); color:var(--tone-ink); }
+.month-heatmap [data-level="mid"] { background:var(--surface-selected); color:var(--ink); }
+.month-heatmap [data-level="high"] { background:var(--hero); color:var(--hero-text); }
+.month-heatmap [data-level="rest"] { background:var(--tone-blue); color:var(--tone-ink); }
 .month-print { display:none; }
 @media print {
   body:has(.month-print) #privateApp > :not(.month-print) { display:none !important; }
-  .month-print { display:block; color:#17261d; background:white; }
+  .month-print { display:block; color:var(--print-ink, #292537); background:white; }
   .month-print table { border-collapse:collapse; width:100%; }
   .month-print th,.month-print td { text-align:left; padding:.4rem; border-bottom:1px solid #bbb; }
 }

@@ -4,13 +4,13 @@
 .release-week h2 { margin: 0; }
 .release-actions button, .release-inline button, .release-stack h2 svg, .review-delta svg { vertical-align: middle; }
 .release-bento { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 1rem; }
-.release-feature { background: #174b37; color: #fffaf0; }
+.release-feature { background: var(--hero); color: var(--hero-text); }
 .release-feature > strong { font-size: clamp(2.3rem, 6vw, 4rem); line-height: 1.1; }
-.release-feature progress { width: 100%; accent-color: #dce9a7; }
+.release-feature progress { width: 100%; accent-color: var(--hero-accent); }
 .release-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .6rem; }
-.release-metrics > div { display: grid; gap: .2rem; background: #dce9a7; color: #174b37; border-radius: 14px; padding: .7rem; }
-.release-metrics > div:nth-child(2) { background: #f2dfc8; }
-.release-metrics > div:nth-child(3) { background: #e5dfed; }
+.release-metrics > div { display: grid; gap: .2rem; background: var(--tone-violet); color: var(--tone-ink); border-radius: 14px; padding: .7rem; }
+.release-metrics > div:nth-child(2) { background: var(--tone-rose); }
+.release-metrics > div:nth-child(3) { background: var(--tone-blue); }
 .release-metrics > div:nth-child(4) { background: var(--soft); color: var(--ink); }
 .release-metrics strong { font-size: 1.2rem; }
 .review-delta { display: block; }

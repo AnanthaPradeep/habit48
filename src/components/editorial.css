@@ -1,17 +1,17 @@
 :root { --editorial-radius:28px; --editorial-gap:16px; }
 .editorial-hero { min-width:0; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(0,1fr); isolation:isolate; overflow:hidden;
-  background:var(--forest); color:var(--ivory); border-radius:var(--editorial-radius); }
+  background:var(--hero); color:var(--hero-text); border-radius:var(--editorial-radius); }
 .editorial-image { display:block; background:var(--soft); overflow:hidden; }
 .editorial-image img { display:block; width:100%; height:100%; object-fit:cover; }
 .editorial-hero > .editorial-image { grid-column:2; grid-row:1; position:relative; min-height:220px; }
 .editorial-hero > .editorial-image img { position:absolute; inset:0; }
 .editorial-hero-copy { grid-area:1/1; display:grid; align-content:center; gap:12px; padding:clamp(20px,4vw,48px); }
 .editorial-hero-copy h2 { font:500 clamp(2rem,5.3vw,4.75rem)/.98 Georgia,serif; letter-spacing:-.055em; }
-.editorial-hero-copy .eyebrow { color:var(--lime); }
+.editorial-hero-copy .eyebrow { color:var(--hero-accent); }
 .editorial-hero-copy p { max-width:34ch; }
-.editorial-hero-copy a { color:var(--lime); }
-.studio-feature .studio-today { margin-top:12px; color:var(--lime); }
-.studio-feature button { margin-top:12px; background:var(--lime); color:var(--forest); }
+.editorial-hero-copy a { color:var(--hero-accent); }
+.studio-feature .studio-today { margin-top:12px; color:var(--hero-accent); }
+.studio-feature button { margin-top:12px; background:var(--hero-accent); color:var(--hero); }
 .studio-feature button svg { vertical-align:middle; }
 .goal-emblem { margin-inline-end:8px; vertical-align:middle; }
 .habit-detail { display:grid; gap:8px; margin-top:16px; }
@@ -40,8 +40,8 @@
 .habit-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; margin-block:12px; }
 .habit-grid > span { display:grid; place-items:center; min-height:30px; border-radius:6px; background:var(--soft); font-size:.75rem; }
 .habit-grid > [data-status=Completed],.habit-year > [data-status=Completed] { background:var(--accent); color:var(--on-accent); }
-.habit-grid > [data-status=Missed],.habit-year > [data-status=Missed] { background:var(--peach); color:var(--forest); }
-.habit-grid > [data-status=Rest],.habit-year > [data-status=Rest] { background:var(--lilac); color:var(--forest); }
+.habit-grid > [data-status=Missed],.habit-year > [data-status=Missed] { background:var(--tone-rose); color:var(--tone-ink); }
+.habit-grid > [data-status=Rest],.habit-year > [data-status=Rest] { background:var(--tone-blue); color:var(--tone-ink); }
 .habit-grid > [data-status=Partial],.habit-year > [data-status=Partial] { box-shadow:inset 0 0 0 2px var(--accent); }
 .habit-year { display:grid; grid-template-columns:repeat(26,minmax(0,1fr)); gap:3px; margin-block:12px; }
 .habit-year > span { aspect-ratio:1; border-radius:2px; background:var(--soft); }
@@ -81,11 +81,11 @@
 .recovery-heading .editorial-image { width:80px; height:54px; border-radius:10px; }
 .player-shell .studio-guide-actions { position:sticky; bottom:0; background:var(--surface); padding:8px; border-radius:12px; }
 @supports (backdrop-filter:blur(8px)) {
-  .player-shell .studio-guide-actions { background:color-mix(in srgb,var(--surface) 90%,transparent); backdrop-filter:blur(8px); }
-  @media(max-width:760px) { .navigation { background:color-mix(in srgb,var(--surface) 94%,transparent); backdrop-filter:blur(8px); } }
+  .player-shell .studio-guide-actions { background:color-mix(in srgb,var(--glass-background) 92%,transparent); backdrop-filter:blur(var(--glass-blur)); }
+  @media(max-width:760px) { .navigation { background:color-mix(in srgb,var(--glass-background) 94%,transparent); backdrop-filter:blur(var(--glass-blur)); } }
 }
 .review-photo { margin-bottom:16px; }
-.goal-emblem { display:inline-grid; place-items:center; width:36px; height:36px; border-radius:11px; background:var(--lime); color:var(--forest); }
+.goal-emblem { display:inline-grid; place-items:center; width:36px; height:36px; border-radius:11px; background:var(--hero-accent); color:var(--hero); }
 .goal-achieved progress { animation:achieved-in 220ms ease-out; }
 @keyframes achieved-in { from { opacity:.45; transform:scaleX(.96); } }
 .route-skeleton { display:grid; gap:12px; }

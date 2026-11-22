@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#174B37">
+    <meta name="theme-color" content="#dfdce7" data-light="#dfdce7" data-dark="#292b39">
+    <script>
+      (() => {
+        let preference
+        try { preference = localStorage.getItem('routine-theme') } catch {}
+        const theme = preference === 'light' || preference === 'dark' ? preference :
+          matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        const meta = document.querySelector('meta[name="theme-color"]')
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        meta.content = meta.dataset[theme]
+      })()
+    </script>
     <link rel="manifest" href="%BASE_URL%manifest.webmanifest">
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%icons/favicon-32-v2.png">
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%icons/apple-touch-icon-180-v2.png">

@@ -39,13 +39,13 @@ export default function Insights({ journal, filters, change, print, scheduled }:
       {values.length ? <>
         {values.some(item => item.value !== null) && <ResponsiveContainer width="100%" height={260} minWidth={0} initialDimension={{ width: 320, height: 260 }}>
           <Chart data={values} margin={{ top: 10, right: 8, bottom: 0, left: 4 }}>
-            <CartesianGrid vertical={false} stroke="var(--line)" />
-            <XAxis dataKey="key" tick={{ fill: 'var(--muted)', fontSize: 10 }} minTickGap={18} />
-            <YAxis width={34} domain={filters.metric === 'habit' ? [0, 100] : [0, 'auto']} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--ink)' }}
+            <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+            <XAxis dataKey="key" tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} minTickGap={18} />
+            <YAxis width={34} domain={filters.metric === 'habit' ? [0, 100] : [0, 'auto']} tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--ink)' }}
               itemStyle={{ color: 'var(--ink)' }} />
-            {chart === 'Bars' ? <Bar dataKey="value" name={metric} fill="var(--accent)" radius={[6, 6, 0, 0]} isAnimationActive={false} /> :
-              <Line dataKey="value" name={metric} stroke="var(--accent)" strokeWidth={2} connectNulls={false} isAnimationActive={false} />}
+            {chart === 'Bars' ? <Bar dataKey="value" name={metric} fill="var(--chart-primary)" radius={[6, 6, 0, 0]} isAnimationActive={false} /> :
+              <Line dataKey="value" name={metric} stroke="var(--chart-primary)" strokeWidth={2} connectNulls={false} isAnimationActive={false} />}
           </Chart>
         </ResponsiveContainer>}
         <details><summary>View chart data</summary><ValueList values={values} /></details>

@@ -1,37 +1,6 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-:root {
-  color-scheme: light;
-  --forest: #174b37;
-  --lime: #dce9a7;
-  --ivory: #f7f6ef;
-  --peach: #f2dfc8;
-  --lilac: #e5dfed;
-  --canvas: var(--ivory);
-  --surface: #fffefa;
-  --ink: #18382b;
-  --muted: #52675c;
-  --line: #dedfd3;
-  --soft: #eef0e6;
-  --accent: var(--forest);
-  --on-accent: #fffefa;
-  --shadow: 0 12px 40px #283a2309;
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --canvas: #15241d;
-  --surface: #1d3026;
-  --ink: #f3f3e6;
-  --muted: #b7c8bc;
-  --line: #395044;
-  --soft: #273d31;
-  --accent: var(--lime);
-  --on-accent: #18382b;
-  --shadow: none;
-}
-
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.5 system-ui, sans-serif; }
@@ -66,7 +35,7 @@ progress { width: 100%; accent-color: var(--accent); }
 body:has(#loginGate) #root { width: min(100%, 420px); }
 #loginGate h1 { margin: 0 0 .35rem; }
 #loginGate .password-wrap input { padding-right: 54px; }
-:root[data-theme="dark"] body:has(#loginGate:not([hidden])) { background: var(--canvas); }
+
 :root[data-theme="dark"] #loginGate :is(.login-sub, .login-footer, #loginStatus, .login-brand span, #passwordToggle) { color: var(--muted); }
 
 #privateApp { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100dvh; }
@@ -85,7 +54,7 @@ body:has(#loginGate) #root { width: min(100%, 420px); }
 }
 .navigation a:hover { background: var(--soft); }
 .navigation a svg { width: 21px; height: 21px; flex-shrink: 0; }
-.navigation a[aria-current] { background: var(--lime); color: var(--forest); }
+.navigation a[aria-current] { background: var(--surface-selected); color: var(--ink); }
 .workout-summary { margin-top: .65rem; }
 .sidebar-summary { margin-top: auto; padding: .8rem .4rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
 .workspace { width: 100%; max-width: 1260px; margin: 0 auto; padding: clamp(20px, 4vw, 56px); }
@@ -122,23 +91,23 @@ body:has(#loginGate) #root { width: min(100%, 420px); }
 .momentum {
   display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-width: 0;
   padding: clamp(15px, 2.5vw, 27px); border-radius: 22px;
-  background: radial-gradient(ellipse at 100% 0%, #276248, transparent 75%), var(--forest); color: #fffefa;
+  background: radial-gradient(ellipse at 100% 0%, var(--hero-glow), transparent 75%), var(--hero); color: var(--hero-text);
 }
-.momentum .eyebrow { color: var(--lime); }
+.momentum .eyebrow { color: var(--hero-accent); }
 .momentum strong { display: block; font: 500 clamp(2.2rem, 5vw, 3.75rem)/1.15 Georgia, serif; letter-spacing: -.06em; }
 .momentum p { font-size: .8rem; }
 .progress-ring {
   --completion: 0%;
   position: relative; display: grid; place-items: center; flex-shrink: 0; isolation: isolate;
   width: clamp(66px, 8vw, 96px); aspect-ratio: 1; border-radius: 50%;
-  background: conic-gradient(var(--lime) var(--completion), #ffffff32 0); color: var(--lime);
+  background: conic-gradient(var(--hero-accent) var(--completion), var(--hero-track) 0); color: var(--hero-accent);
 }
-.progress-ring::before { position: absolute; content: ""; inset: 7px; border-radius: 50%; background: var(--forest); z-index: -1; }
+.progress-ring::before { position: absolute; content: ""; inset: 7px; border-radius: 50%; background: var(--hero); z-index: -1; }
 .progress-ring svg { width: 38%; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.stat { background: var(--peach); color: #253c2f; padding: clamp(9px, 1.8vw, 18px); border-radius: 19px; min-width: 0; }
-.stat:nth-child(2) { background: var(--lime); }
-.stat:nth-child(3) { background: var(--lilac); }
+.stat { background: var(--tone-rose); color: var(--tone-ink); padding: clamp(9px, 1.8vw, 18px); border-radius: 19px; min-width: 0; }
+.stat:nth-child(2) { background: var(--tone-violet); }
+.stat:nth-child(3) { background: var(--tone-blue); }
 .stat p { margin: .45rem 0 .2rem; font-size: .8rem; }
 .stat strong { font-size: clamp(1rem, 2vw, 1.5rem); letter-spacing: -.045em; overflow-wrap: anywhere; }
 .stat small { display: block; font-size: .72rem; }
@@ -146,10 +115,10 @@ body:has(#loginGate) #root { width: min(100%, 420px); }
 #habits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
 .habit { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem; min-height: 56px; padding: .45rem .6rem; margin: 0; border-radius: 13px; background: var(--soft); cursor: pointer; font-weight: 580; }
 .habit:has(:checked) { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent), transparent 50%); }
-.habit-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--forest); background: var(--lime); }
-.habit:nth-child(3n+2) .habit-icon { background: var(--lilac); }
-.habit:nth-child(3n) .habit-icon { background: var(--peach); }
-.habit input { width: 20px; height: 20px; margin: 0; accent-color: var(--forest); cursor: pointer; }
+.habit-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--tone-ink); background: var(--tone-violet); }
+.habit:nth-child(3n+2) .habit-icon { background: var(--tone-blue); }
+.habit:nth-child(3n) .habit-icon { background: var(--tone-rose); }
+.habit input { width: 20px; height: 20px; margin: 0; accent-color: var(--tone-ink); cursor: pointer; }
 .journal-grid, .settings-grid { display: grid; grid-template-columns: 1.1fr 1fr; align-items: start; gap: 16px; }
 .panel h2 + p, .panel h2 + div, .panel h2 + label { margin-top: .7rem; }
 .panel p + #food { margin-top: 1rem; }

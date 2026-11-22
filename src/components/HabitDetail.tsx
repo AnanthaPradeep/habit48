@@ -73,6 +73,6 @@ export function HabitHistory({ name, day, close, state, amount }: {
         return <span key={date} data-status={value} title={date + ' · ' + value} />
       })}
     </div>
-    <p className="muted">Solid green completed · Ring partial · Peach missed · Lilac rest · Neutral not logged · Faded future</p>
+    <p className="muted">Filled completed · Ring partial · Rose missed · Blue rest · Neutral not logged · Faded future</p>
   </div></Modal>
 }
