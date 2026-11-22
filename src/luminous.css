@@ -16,10 +16,22 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 .brand img.brand-lockup { display:block; max-width:100%; height:auto; border-radius:0; }
 .login-brand img { display:block; max-width:100%; height:auto; margin-inline:auto; }
 #splash { background:var(--background-gradient); color:var(--ink); }
-#splash .pulse-box { background:transparent; border-color:transparent; box-shadow:none; margin-bottom:8px; }
+#splash .pulse-box {
+  width:clamp(184px, 60vmin, 248px);
+  height:auto;
+  aspect-ratio:1;
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+  margin-bottom:8px;
+}
 #splash .pulse-box img { height:auto; border-radius:0; }
-#splash .splash-wordmark { width:min(100%,206px); height:auto; margin:0 auto; }
+#splash .splash-wordmark { width:min(100%,238px); height:auto; margin:0 auto; }
 #splash .splash-tagline { display:block; margin:0 auto 16px; font-size:.72rem; font-weight:650; letter-spacing:.18em; text-transform:uppercase; }
+@media (max-height:420px) {
+  #splash .pulse-box { width:clamp(150px, 45vh, 180px); }
+  #splash .splash-tagline, #splash .heartbeat { margin-bottom:8px; }
+}
 #splash .heartbeat { color:var(--accent); filter:none; }
 .settings-grid .brand-about { grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:16px 24px; }
 .brand-about img { display:block; max-width:100%; height:auto; }
