@@ -1,9 +1,12 @@
+import { BrandLogo } from './Branding'
+import { version } from '../../package.json'
 import { useRef, useState, type FormEvent } from 'react'
 import { challengeCount, isJournal, validDate, type Journal } from '../domain/journal'
 import { download } from '../services/exports'
 import { ShieldCheck, Target } from 'lucide-react'
 
 interface Props {
+  theme: 'light' | 'dark'
   journal: Journal
   status: string
   saveChallenge(start: string, target: number): boolean
@@ -11,7 +14,7 @@ interface Props {
   refresh(): void
   logout(): void
 }
-export function Settings({ journal, status, saveChallenge, restore, refresh, logout }: Props) {
+export function Settings({ journal, status, saveChallenge, restore, refresh, logout, theme }: Props) {
   const file = useRef<HTMLInputElement>(null)
   const [importStatus, setImportStatus] = useState('')
   const [challenge, setChallenge] = useState<{ start: string; target: string; baselineStart: string; baselineTarget: number } | null>(null)
@@ -64,6 +67,10 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
       </div>
       <input ref={file} id="file" type="file" accept=".json" hidden onChange={event => void importBackup(event.currentTarget)} />
       {importStatus && <p role="status">{importStatus}</p>}
+    </section>
+    <section className="panel brand-about" aria-labelledby="about-heading">
+      <BrandLogo theme={theme} layout="horizontal" width={220} decorative />
+      <div><h2 id="about-heading">About My Routine</h2><p>Version {version} · Private wellness journal</p></div>
     </section>
   </div>
 }

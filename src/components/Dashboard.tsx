@@ -7,7 +7,7 @@ import { HabitDetail, habitRecord } from './HabitDetail'
 import type { ScheduleFor } from '../domain/review'
 import { labelDate, shift, monday, today, habits, numberLabel, type Entry, type Journal } from '../domain/journal'
 import { total } from '../domain/calories'
-import { logo } from './Branding'
+import { BrandLogo } from './Branding'
 
 export const views = [
   { id: 'today', label: 'Today', Icon: LayoutGrid },
@@ -21,9 +21,11 @@ export type View = typeof views[number]['id'] | 'monthly'
 export const getView = (): View => location.hash === '#monthly' ? 'monthly' :
   views.find(view => '#' + view.id === location.hash)?.id ?? 'today'
 
-export function Sidebar({ view, logged }: { view: View; logged: number }) {
+export function Sidebar({ view, logged, theme }: { view: View; logged: number; theme: 'light' | 'dark' }) {
   return <aside className="sidebar">
-    <a className="brand" href="#today"><img src={logo} alt="" width="46" height="46" /><span>My Routine<small>Wellness journal</small></span></a>
+    <a className="brand" href="#today" aria-label="My Routine home">
+      <BrandLogo className="brand-lockup" theme={theme} layout="horizontal" width={184} decorative />
+    </a>
     <nav className="navigation" aria-label="Main navigation">
       {views.map(({ id, label, Icon }) => <a key={id} href={'#' + id} aria-current={view === id || (id === 'review' && view === 'monthly') ? 'page' : undefined}>
         <Icon aria-hidden="true" /><span>{label}</span>

@@ -1,3 +1,4 @@
+import { BrandLogo } from './Branding'
 import { useState } from 'react'
 import { createPortal, flushSync } from 'react-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -105,7 +106,7 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
 }
 
 function MonthlyPrint({ rows }: { rows: (string | number | null)[][] }) {
-  return <article className="month-print"><h1>My Routine Monthly Review</h1><table><tbody>
+  return <article className="month-print"><BrandLogo theme="light" layout="horizontal" width={180} decorative /><h1>My Routine Monthly Review</h1><table><tbody>
     {rows.map((row, index) => <tr key={index}>{row.map((value, column) => <td key={column}>{value ?? '—'}</td>)}</tr>)}
   </tbody></table></article>
 }

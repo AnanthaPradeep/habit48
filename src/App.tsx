@@ -52,10 +52,10 @@ export function App({ cloud }: { cloud: CloudJournal }) {
     }
   }, [cloud])
   return <>
-    <Splash />
+    <Splash theme={theme} />
     {state.unlocked
       ? <Workspace key={cloud.workoutOwner()} owner={cloud.workoutOwner()!} cloud={cloud} state={state} theme={theme} toggle={toggle} />
-      : <Login busy={state.busy} status={state.status} login={cloud.login} />}
+      : <Login theme={theme} busy={state.busy} status={state.status} login={cloud.login} />}
   </>
 }
 
@@ -187,7 +187,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
     })) : []
   const recent = recentMeals(journal, day)
   return <main id="privateApp" data-view={view}>
-    <Sidebar view={view} logged={Object.keys(journal.entries).length} />
+    <Sidebar theme={theme} view={view} logged={Object.keys(journal.entries).length} />
     <div className="workspace">
       <PageHeader day={day} view={view} theme={theme} toggle={toggle}
         connection={state.connection} lastSynced={state.lastSynced} />
@@ -249,7 +249,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
         <FlexibleRoutine schedules={[...planning.schedules.values()]} append={routine.append} />
       </Suspense>
         <CustomHabits {...customData} day={today()} manage />
-        <Settings journal={journal} status={status}
+        <Settings theme={theme} journal={journal} status={status}
         saveChallenge={(start, target) => discard() && cloud.saveChallenge(start, target)}
         restore={backup => discard() && cloud.restore(backup)}
         refresh={() => void cloud.refresh(Boolean(draft))} logout={() => void cloud.logout(Boolean(draft))} /></div>}

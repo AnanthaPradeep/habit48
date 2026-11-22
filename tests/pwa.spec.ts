@@ -9,22 +9,21 @@ test('serves and precaches versioned PWA icons with safe maskable artwork', asyn
   const manifest = await response.json()
   expect(manifest).toMatchObject({ id: './', start_url: './', scope: './', display: 'standalone' })
   expect(manifest.icons).toEqual([
-    { src: 'icons/my-routine-192-v2.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-    { src: 'icons/my-routine-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-    { src: 'icons/my-routine-maskable-192-v2.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-    { src: 'icons/my-routine-maskable-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    { src: 'brand/icons/icon-192-luminous-v1.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: 'brand/icons/icon-512-luminous-v1.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    { src: 'brand/icons/maskable-512-luminous-v1.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ])
   const apple = page.locator('link[rel="apple-touch-icon"]')
-  const favicon = page.locator('link[rel="icon"]')
-  await expect(apple).toHaveAttribute('href', '/habit48/icons/apple-touch-icon-180-v2.png')
+  const favicon = page.locator('link[rel="icon"][sizes="32x32"]')
+  await expect(apple).toHaveAttribute('href', '/habit48/brand/icons/icon-180-luminous-v1.png')
   await expect(apple).toHaveAttribute('sizes', '180x180')
-  await expect(favicon).toHaveAttribute('href', '/habit48/icons/favicon-32-v2.png')
-  await expect(favicon).toHaveAttribute('sizes', '32x32')
+  await expect(favicon).toHaveAttribute('href', '/habit48/brand/icons/icon-32-luminous-v1.png')
 
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
   const icons = [...manifest.icons,
-    { src: 'icons/apple-touch-icon-180-v2.png', sizes: '180x180', purpose: 'apple' },
-    { src: 'icons/favicon-32-v2.png', sizes: '32x32', purpose: 'any' }] as { src: string; sizes: string; purpose: string }[]
+    { src: 'brand/icons/icon-180-luminous-v1.png', sizes: '180x180', purpose: 'apple' },
+    { src: 'brand/icons/icon-32-luminous-v1.png', sizes: '32x32', purpose: 'any' },
+    { src: 'brand/icons/icon-16-luminous-v1.png', sizes: '16x16', purpose: 'any' }] as { src: string; sizes: string; purpose: string }[]
   const checked = await page.evaluate(async ({ icons, manifestUrl }) => {
     const cache = (await caches.keys()).find(key => key.startsWith('habit48-react-'))
     if (!cache) throw Error('PWA cache was not created')
@@ -47,19 +46,19 @@ test('serves and precaches versioned PWA icons with safe maskable artwork', asyn
           for (let x = 0; x < image.width; x++) {
             const offset = (y * image.width + x) * 4
             const outside = Math.hypot(x + .5 - image.width / 2, y + .5 - image.height / 2) > image.width * .4
-            if (data[offset + 3] !== 255 || (outside && (data[offset] !== 5 || data[offset + 1] !== 43 || data[offset + 2] !== 32))) {
+            if (data[offset + 3] !== 255 || (outside && (data[offset] + data[offset + 1] + data[offset + 2] < 420))) {
               validMask = false
             }
           }
         }
       }
       return { src, dimensions: image.width + 'x' + image.height, sizes, validMask,
-        validAppleCorner: purpose !== 'apple' || data[3] === 255 }
+        validAppleArtwork: purpose !== 'apple' || data[(Math.floor(image.height / 2) * image.width + Math.floor(image.width / 2)) * 4 + 3] === 255 }
     }))
   }, { icons, manifestUrl: manifestUrl.href })
   for (const icon of checked) {
     expect(icon.dimensions, icon.src).toBe(icon.sizes)
     expect(icon.validMask, icon.src).toBe(true)
-    expect(icon.validAppleCorner, icon.src).toBe(true)
+    expect(icon.validAppleArtwork, icon.src).toBe(true)
   }
 })

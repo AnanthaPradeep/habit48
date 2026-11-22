@@ -8,9 +8,24 @@
   "background_color": "#dfdce7",
   "theme_color": "#71677f",
   "icons": [
-    { "src": "icons/my-routine-192-v2.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/my-routine-512-v2.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/my-routine-maskable-192-v2.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/my-routine-maskable-512-v2.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "brand/icons/icon-192-luminous-v1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "brand/icons/icon-512-luminous-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "brand/icons/maskable-512-luminous-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "description": "My Routine · Daily Balance"
 }

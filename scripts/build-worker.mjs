@@ -2,8 +2,10 @@ import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 
 const files = [
-  'index.html', 'manifest.webmanifest', 'brand/logo.svg',
-  ...readdirSync('dist/icons').sort().map(name => 'icons/' + name),
+  'index.html', 'manifest.webmanifest',
+  ...readdirSync('dist/brand/icons').filter(name => !name.startsWith('icon-1024')).sort().map(name => 'brand/icons/' + name),
+  ...['light', 'dark'].flatMap(theme => readdirSync('dist/brand/logos/' + theme).sort().map(name => 'brand/logos/' + theme + '/' + name)),
+  ...readdirSync('dist/fonts').filter(name => name.endsWith('.woff2')).sort().map(name => 'fonts/' + name),
   ...readdirSync('dist/editorial').filter(name => name.endsWith('.webp')).sort().map(name => 'editorial/' + name),
   ...readdirSync('dist/assets').sort().map(name => 'assets/' + name),
 ]

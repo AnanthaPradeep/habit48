@@ -1,0 +1,31 @@
+﻿@font-face {
+  font-family: Inter;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  font-weight: 400 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: Sora;
+  src: url('/fonts/sora-latin.woff2') format('woff2');
+  font-weight: 400 800;
+  font-display: swap;
+}
+body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
+.page-header h1, .section-heading h2, #loginGate h1 { font-family: Sora, system-ui, sans-serif; }
+.page-header h1 { font-weight: 550; }
+.brand img.brand-lockup { display:block; max-width:100%; height:auto; border-radius:0; }
+.login-brand img { display:block; max-width:100%; height:auto; margin-inline:auto; }
+#splash { background:var(--background-gradient); color:var(--ink); }
+#splash .pulse-box { background:transparent; border-color:transparent; box-shadow:none; margin-bottom:8px; }
+#splash .pulse-box img { height:auto; border-radius:0; }
+#splash .splash-wordmark { width:min(100%,206px); height:auto; margin:0 auto; }
+#splash .splash-tagline { display:block; margin:0 auto 16px; font-size:.72rem; font-weight:650; letter-spacing:.18em; text-transform:uppercase; }
+#splash .heartbeat { color:var(--accent); filter:none; }
+.settings-grid .brand-about { grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:16px 24px; }
+.brand-about img { display:block; max-width:100%; height:auto; }
+@media (max-width:760px) {
+  .brand img.brand-lockup { width:144px; }
+}
+@media (min-width:761px) and (max-width:1024px) {
+  .settings-grid .challenge-form { grid-template-columns:1fr; }
+}
