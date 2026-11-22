@@ -15,30 +15,20 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 .page-header h1 { font-weight: 550; }
 .login-brand img { display:block; max-width:100%; height:auto; margin-inline:auto; }
 #splash { background:var(--background-gradient); color:var(--ink); }
-.brand-symbol {
-  display:inline-grid;
-  place-items:center;
-  flex:none;
-  box-sizing:border-box;
-  border:1px solid #ffffffb3;
-  border-radius:24%;
-  background:linear-gradient(145deg,#fff8fc,#e1d8f4);
-  box-shadow:0 3px 10px #4a30541f;
-}
-.brand-symbol-dark {
-  border-color:#9f8ab057;
-  background:linear-gradient(145deg,#50425f,#292638);
-  box-shadow:0 3px 10px #0d0a1966;
-}
-.brand-symbol img { display:block; height:auto; border-radius:0; }
+.brand-symbol { display:inline-grid; place-items:center; flex:none; }
+.brand-symbol img { display:block; height:auto; }
 #splash .pulse-box {
   display:grid;
   width:clamp(184px, 60vmin, 248px);
   height:auto;
   aspect-ratio:1;
-  padding:10px;
+  padding:0;
   margin-bottom:8px;
+  background:transparent;
+  border:0;
+  box-shadow:none;
 }
+#splash .pulse-box img { border-radius:0; }
 .brand-wordmark {
   display:block;
   font-family:Sora,system-ui,sans-serif;
@@ -65,14 +55,12 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 }
 
 .brand-lockup { display:inline-flex; align-items:center; gap:8px; max-width:100%; --lockup-size:1.14rem; }
-.brand-lockup .brand-symbol { padding:3px; }
-.brand-lockup-stacked .brand-symbol { padding:6px; }
 .brand-lockup .brand-wordmark { font-size:var(--lockup-size); }
 .brand-lockup-copy { display:grid; gap:4px; min-width:0; }
 .brand-lockup-tagline { display:block; font-size:.6rem; font-weight:650; letter-spacing:.16em; text-transform:uppercase; }
 .brand-lockup-stacked { display:flex; flex-direction:column; gap:12px; --lockup-size:clamp(1.35rem,6vw,1.95rem); }
 .brand-lockup-stacked .brand-lockup-copy { justify-items:center; }
-.brand .brand-lockup img { width:36px; }
+.brand .brand-lockup img { width:42px; height:auto; border-radius:0; }
 @media (max-width:760px) {
   .brand .brand-lockup { --lockup-size:1.06rem; }
 }

@@ -9,21 +9,21 @@ test('serves and precaches versioned PWA icons with safe maskable artwork', asyn
   const manifest = await response.json()
   expect(manifest).toMatchObject({ id: './', start_url: './', scope: './', display: 'standalone' })
   expect(manifest.icons).toEqual([
-    { src: 'brand/icons/icon-192-luminous-v1.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-    { src: 'brand/icons/icon-512-luminous-v1.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-    { src: 'brand/icons/maskable-512-luminous-v1.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    { src: 'brand/icons/icon-192-mr-rose-v1.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: 'brand/icons/icon-512-mr-rose-v1.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    { src: 'brand/icons/maskable-512-mr-rose-v1.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ])
   const apple = page.locator('link[rel="apple-touch-icon"]')
   const favicon = page.locator('link[rel="icon"][sizes="32x32"]')
-  await expect(apple).toHaveAttribute('href', '/habit48/brand/icons/icon-180-luminous-v1.png')
+  await expect(apple).toHaveAttribute('href', '/habit48/brand/icons/icon-180-mr-rose-v1.png')
   await expect(apple).toHaveAttribute('sizes', '180x180')
-  await expect(favicon).toHaveAttribute('href', '/habit48/brand/icons/icon-32-luminous-v1.png')
+  await expect(favicon).toHaveAttribute('href', '/habit48/brand/icons/icon-32-mr-rose-v1.png')
 
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
   const icons = [...manifest.icons,
-    { src: 'brand/icons/icon-180-luminous-v1.png', sizes: '180x180', purpose: 'apple' },
-    { src: 'brand/icons/icon-32-luminous-v1.png', sizes: '32x32', purpose: 'any' },
-    { src: 'brand/icons/icon-16-luminous-v1.png', sizes: '16x16', purpose: 'any' }] as { src: string; sizes: string; purpose: string }[]
+    { src: 'brand/icons/icon-180-mr-rose-v1.png', sizes: '180x180', purpose: 'apple' },
+    { src: 'brand/icons/icon-32-mr-rose-v1.png', sizes: '32x32', purpose: 'any' },
+    { src: 'brand/icons/icon-16-mr-rose-v1.png', sizes: '16x16', purpose: 'any' }] as { src: string; sizes: string; purpose: string }[]
   const checked = await page.evaluate(async ({ icons, manifestUrl }) => {
     const cache = (await caches.keys()).find(key => key.startsWith('habit48-react-'))
     if (!cache) throw Error('PWA cache was not created')

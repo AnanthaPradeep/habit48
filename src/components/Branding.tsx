@@ -3,8 +3,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 type BrandTheme = 'light' | 'dark'
 function BrandSymbol({ theme, width, pulse = false }: { theme: BrandTheme; width: number; pulse?: boolean }) {
-  return <span className={`brand-symbol brand-symbol-${theme}${pulse ? ' pulse-box' : ''}`}>
-    <img key={theme} src={import.meta.env.BASE_URL + 'brand/logos/' + theme + '/symbol-luminous-v1.svg'}
+  const variant = theme === 'dark' ? 'violet' : 'rose'
+  return <span className={pulse ? 'brand-symbol pulse-box' : 'brand-symbol'}>
+    <img key={variant} src={`${import.meta.env.BASE_URL}brand/icons/icon-512-mr-${variant}-v1.png`}
       width={width} height={width} alt="" />
   </span>
 }
