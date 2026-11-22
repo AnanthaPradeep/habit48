@@ -2,9 +2,11 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 type BrandTheme = 'light' | 'dark'
-function BrandSymbol({ theme, width }: { theme: BrandTheme; width: number }) {
-  return <img key={theme} src={import.meta.env.BASE_URL + 'brand/logos/' + theme + '/symbol-luminous-v1.svg'}
-    width={width} height={width} alt="" />
+function BrandSymbol({ theme, width, pulse = false }: { theme: BrandTheme; width: number; pulse?: boolean }) {
+  return <span className={`brand-symbol brand-symbol-${theme}${pulse ? ' pulse-box' : ''}`}>
+    <img key={theme} src={import.meta.env.BASE_URL + 'brand/logos/' + theme + '/symbol-luminous-v1.svg'}
+      width={width} height={width} alt="" />
+  </span>
 }
 
 function BrandWordmark() {
@@ -32,7 +34,7 @@ export function Splash({ theme }: { theme: BrandTheme }) {
   }, [])
   return <div id="splash" role="status" aria-label="Loading My Routine" aria-hidden={done} className={done ? 'done' : undefined}>
     <div className="splash-inner">
-      <div className="pulse-box"><BrandSymbol theme={theme} width={128} /></div>
+      <BrandSymbol theme={theme} width={128} pulse />
       <BrandWordmark />
       <small className="splash-tagline">Daily Balance</small>
       <svg className="heartbeat" viewBox="0 0 180 44" aria-hidden="true">
