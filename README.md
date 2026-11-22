@@ -1,4 +1,13 @@
 # My Routine
+## Personal Goals and Monthly Review
+
+Use My Goals on Today to create or renew a goal. Workout, walking, hydration, sleep, habit and weight goals read existing records. Reading and project goals accept manual progress. Open Monthly Review from Today or Weekly Review for comparisons, the daily heatmap, exercise and weight history, reflections, and Excel or print-to-PDF reports.
+
+Workout Studio saves guided workout progress as it changes. Open Workout on another signed-in device to continue after sync, or reopen the same device offline. The newest accepted revision is used if two devices change the same draft. Custom habits are managed in Settings. Scheduled edits and archives take effect the next day.
+
+Smart reminders are opt-in and device-specific. In-app reminders and permission-based notifications are evaluated while the app is running. Export a calendar file and import it into a calendar for closed-app alerts. Calendar imports are snapshots and must be updated after changing a schedule. Hosted Web Push is not configured.
+
+The release adds event kinds to the existing owner-protected planning table. Apply the personal progress migration before deploying the frontend. It keeps existing records and policies. For a frontend rollback, redeploy the previous Git revision and keep the additive migration so newer records remain available.
 
 My Routine is a private wellness journal published at [GitHub Pages](https://ananthapradeep.github.io/habit48/).
 

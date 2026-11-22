@@ -8,10 +8,12 @@ export interface WorkoutSession {
   id: string; day: string; name: string; finishedAt: string; seconds: number
   energy: number | null; strength: boolean; sets: CompletedSet[]
   plannedSets?: number; planId?: string
+  notes?: string
 }
 export interface WorkoutDraft {
   id: string; day: string; plan: WorkoutPlan; sets: CompletedSet[]
   elapsed: number; runningSince: number | null; restUntil: number | null; pausedRest: number
+  notes?: string
 }
 
 export function step(id: string): PlanStep {
@@ -68,7 +70,7 @@ export function finishWorkout(draft: WorkoutDraft, now: number, massKg?: number)
   const estimate = massKg && massKg > 0 ? Math.round(met * massKg * seconds / 3600) : null
   const energy = estimate !== null && Number.isSafeInteger(estimate) && estimate <= 2147483647 ? estimate : null
   return { id: draft.id, day: draft.day, name: draft.plan.name, finishedAt: new Date(now).toISOString(),
-    seconds, energy, strength, sets: draft.sets, plannedSets: sequence(draft.plan).length, planId: draft.plan.id }
+    seconds, energy, strength, sets: draft.sets, plannedSets: sequence(draft.plan).length, planId: draft.plan.id, notes: draft.notes }
 }
 export function sessionStatus(session: WorkoutSession) {
   return session.plannedSets === undefined ? 'Logged' : session.sets.length >= session.plannedSets ? 'Completed' : 'Partial'

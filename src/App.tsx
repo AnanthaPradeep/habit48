@@ -16,9 +16,15 @@ import { RoutineEventStore } from './services/routineEvents'
 import { projectEvents } from './domain/routineEvents'
 import { QuickLog } from './components/QuickLog'
 import { projectQuick, recentMeals } from './domain/quickLog'
-import { scheduleFor, habitStreak } from './domain/schedule'
+import { effectiveSchedule, scheduleFor, habitStreak, weekdayIndex } from './domain/schedule'
+import { CustomHabits } from './components/CustomHabits'
+import { SmartReminders } from './components/SmartReminders'
+import { customHabitAt, customHabitsFor } from './domain/customHabits'
 import { plannerCounts } from './domain/planner'
 import './components/release.css'
+import './components/progress.css'
+const MyGoals = lazy(() => import('./components/MyGoals'))
+const MonthlyReview = lazy(() => import('./components/MonthlyReview'))
 const WorkoutStudio = lazy(() => import('./components/WorkoutStudio'))
 const WeeklyReview = lazy(() => import('./components/WeeklyReview'))
 const FlexibleRoutine = lazy(() => import('./components/FlexibleRoutine'))
@@ -75,11 +81,40 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
   const routineState = useSyncExternalStore(routine.subscribe, routine.snapshot)
   useEffect(() => routine.mount(), [routine])
   const planning = useMemo(() => projectEvents(routineState.events), [routineState.events])
+  const sessions = useMemo(() => [...new Map([...workouts.sessions, ...planning.finishedWorkouts.values()]
+    .map(session => [session.id, session])).values()], [workouts.sessions, planning.finishedWorkouts])
+  useEffect(() => {
+    // Only a server-confirmed finish can enter the legacy cloud history.
+    const confirmed = projectEvents(routineState.events.filter(event => event.position !== undefined))
+    for (const session of confirmed.finishedWorkouts.values()) workout.saveRecoveredSession(session)
+  }, [workout, routineState.events])
   const planningStatus = routineState.status + (planning.rejected.length ? ' · Concurrent changes kept their saved version' : '')
   const scheduled = useMemo(() => scheduleFor(planning.schedules.values()), [planning])
+  const habitHistory = [...planning.customHabits.values()]
+  const isRest = (date: string) => {
+    const schedule = effectiveSchedule(planning.schedules.values(), date)
+    return Boolean(schedule?.recovery?.includes(weekdayIndex(date)) || schedule?.days[weekdayIndex(date)]?.length === 0)
+  }
+  const customData = { history: habitHistory, logs: planning.habitLogs, isRest, append: routine.append }
+  const goalData = { journal, sessions, goals: [...planning.personalGoals.values()],
+    logs: [...planning.goalLogs.values()], scheduled, append: routine.append,
+    customOptions: customHabitsFor(habitHistory, today()),
+    customDates: (id: string) => [...planning.habitLogs.values()].flatMap(log => {
+      const habit = customHabitAt(habitHistory, id, log.day)
+      return log.habit === id && habit && !habit.archived && !isRest(log.day) && habit.days.includes(weekdayIndex(log.day))
+        ? [{ day: log.day, amount: Number(log.value >= habit.target) }] : []
+    }),
+    customCounts: (date: string) => {
+      const habits = isRest(date) ? [] : customHabitsFor(habitHistory, date).filter(habit => habit.days.includes(weekdayIndex(date)))
+      const recorded = habits.flatMap(habit => {
+        const logged = planning.habitLogs.get(habit.id + ':' + date)
+        return logged ? [logged.value >= habit.target] : []
+      })
+      return { done: recorded.filter(Boolean).length, due: habits.length, recorded: recorded.length }
+    } }
   const due = scheduled(day)
-  const dailyWorkouts = workoutTotals(workouts.sessions.filter(session => session.day === day))
-  const rangeWorkouts = workoutTotals(workouts.sessions.filter(session => session.day >= filters.from && session.day <= filters.to))
+  const dailyWorkouts = workoutTotals(sessions.filter(session => session.day === day))
+  const rangeWorkouts = workoutTotals(sessions.filter(session => session.day >= filters.from && session.day <= filters.to))
   const massKg = Number(Object.entries(journal.entries).filter(([, entry]) => Number(entry.m[3]) > 0)
     .sort(([a], [b]) => b.localeCompare(a))[0]?.[1].m[3])
   const saved = journal.entries[day]
@@ -152,6 +187,14 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
         changeEntry({ ...entry, h: entry.h.map((done, i) => index === i ? !done : done) })} />}
       {view === 'today' && day === today() && <QuickLog entry={saved ?? blankEntry()} due={due} recent={recentMeals(journal, day)}
         submit={input => cloud.quickLog(day, input)} undo={cloud.undoQuick} canUndo={state.lastQuick?.day === day} />}
+      {view === 'today' && <Suspense fallback={<p role="status">Loading My Goals…</p>}><MyGoals {...goalData} /></Suspense>}
+      {view === 'today' && day <= today() && <CustomHabits {...customData} day={day} />}
+      <SmartReminders owner={owner} settings={view === 'settings'}
+        workoutDays={[...planning.planner.values()].filter(plan => plan.mode === 'workout' && !plan.movedTo).map(plan => plan.day)}
+        deadlines={goalData.goals.filter(goal => goal.state === 'Active').map(goal => goal.end)} />
+      {view === 'monthly' && <Suspense fallback={<p role="status">Loading Monthly Review…</p>}>
+        <MonthlyReview {...goalData} reflections={planning.reflections} />
+      </Suspense>}
       <div hidden={view !== 'journal'}>
         <DailyJournal entry={entry} warnings={warnings ?? inferred?.warnings ?? []} changeEntry={changeEntry}
           changeMeal={(index, value) => recalculate(entry.f.map((text, i) => i === index ? value : text))}
@@ -162,13 +205,17 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
         </section>}
       </div>
       {view === 'workout' && <Suspense fallback={<p role="status">Loading Workout Studio…</p>}>
-        <WorkoutStudio store={workout} state={workouts} massKg={massKg} planner={planning.planner}
+        <WorkoutStudio store={workout} state={{ ...workouts, sessions,
+          draft: planning.activeWorkout ? planning.activeWorkout.draft : workouts.draft }} massKg={massKg} planner={planning.planner}
+          saveDraft={(draft, session) => routine.append({ kind: 'active_workout',
+            payload: { draft, session, expected: planning.activeWorkout?.revision ?? null } })}
           append={routine.append} planningStatus={planningStatus} />
       </Suspense>}
       {view === 'review' && <Suspense fallback={<p role="status">Loading Weekly Review…</p>}>
-        <WeeklyReview journal={journal} sessions={workouts.sessions} goals={[...planning.goals.values()]}
+        <p><a href="#monthly">Open Monthly Review</a></p>
+        <WeeklyReview journal={journal} sessions={sessions} goals={[...planning.goals.values()]}
         append={routine.append} status={planningStatus} scheduled={scheduled}
-        planCounts={week => plannerCounts(planning.planner, workouts.sessions, week, today())} />
+        planCounts={week => plannerCounts(planning.planner, sessions, week, today())} />
       </Suspense>}
       {view === 'insights' && <><Insights journal={journal} filters={filters} change={setFilters} print={print} scheduled={scheduled} />
         {rangeWorkouts.count > 0 && <section className="panel workout-summary" aria-label="Workout Studio activity">
@@ -180,6 +227,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
       {view === 'settings' && <div className="release-stack"><Suspense fallback={<p role="status">Loading habit schedules…</p>}>
         <FlexibleRoutine schedules={[...planning.schedules.values()]} append={routine.append} />
       </Suspense>
+        <CustomHabits {...customData} day={today()} manage />
         <Settings journal={journal} status={status}
         saveChallenge={(start, target) => discard() && cloud.saveChallenge(start, target)}
         restore={backup => discard() && cloud.restore(backup)}

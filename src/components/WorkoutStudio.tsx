@@ -14,6 +14,7 @@ import { slotStatus } from '../domain/planner'
 import './workout.css'
 
 type State = ReturnType<WorkoutStore['snapshot']>
+type SaveDraft = (draft: WorkoutDraft | null, session?: WorkoutSession) => boolean
 const dayIndex = () => (new Date().getDay() + 6) % 7
 const presetPlans = [body, upper, lower, full, warmup, cooldown]
 const secondsLabel = (value: number) => {
@@ -41,9 +42,10 @@ function ExerciseGuide({ exercise }: { exercise: Exercise }) {
   </div>
 }
 
-export default function WorkoutStudio({ store, state, massKg, planner, append, planningStatus }: {
+export default function WorkoutStudio({ store, state, massKg, planner, append, planningStatus, saveDraft }: {
   store: WorkoutStore; state: State; massKg: number; planner: ReadonlyMap<string, PlanSlot>
   append(change: EventChange): boolean; planningStatus: string
+  saveDraft: SaveDraft
 }) {
   const [selected, select] = useState(dayIndex)
   const [preview, setPreview] = useState<WorkoutPlan | null>(null)
@@ -70,7 +72,7 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
 
   function start(plan: WorkoutPlan) {
     if (state.draft && !confirm('Replace the workout currently in progress?')) return
-    if (store.draft({ id: crypto.randomUUID(), day: today(), plan, sets: [], elapsed: 0,
+    if (saveDraft({ id: crypto.randomUUID(), day: today(), plan, sets: [], elapsed: 0,
       runningSince: Date.now(), restUntil: null, pausedRest: 0 })) {
       setPreview(null)
       requestAnimationFrame(() => document.getElementById('guided-workout')?.scrollIntoView({ behavior: 'instant' }))
@@ -86,7 +88,7 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       <ExerciseDemo exercise={exerciseById.get('goblet')!} thumbnail />
     </section>
     <p className="studio-safety"><HeartPulse size={18} />Get medical clearance before strength training if you have a history of CVST. Start gently once cleared, breathe continuously, and avoid straining.</p>
-    {state.draft && <Guided key={state.draft.id} draft={state.draft} store={store} massKg={massKg} sessions={state.sessions} />}
+    {state.draft && <Guided key={state.draft.id} draft={state.draft} saveDraft={saveDraft} massKg={massKg} sessions={state.sessions} />}
     {preview && <section className="panel studio-preview" aria-label="Workout preview">
       <div className="section-heading"><h2>{preview.name}</h2><button type="button" className="icon-button" aria-label="Close workout preview" onClick={() => setPreview(null)}><X /></button></div>
       <p>{preview.minutes} min planned · {sequence(preview).length} sets</p>
@@ -170,7 +172,7 @@ function WorkoutTrend({ sessions }: { sessions: WorkoutSession[] }) {
   </figure>
 }
 
-function Guided({ draft, store, massKg, sessions }: { draft: WorkoutDraft; store: WorkoutStore; massKg: number; sessions: WorkoutSession[] }) {
+function Guided({ draft, saveDraft, massKg, sessions }: { draft: WorkoutDraft; saveDraft: SaveDraft; massKg: number; sessions: WorkoutSession[] }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250)
@@ -188,14 +190,14 @@ function Guided({ draft, store, massKg, sessions }: { draft: WorkoutDraft; store
   const paused = draft.runningSince === null
   function finish() {
     const session = finishWorkout(draft, Date.now(), massKg)
-    if (session) store.saveSession(session)
+    if (session) saveDraft(null, session)
   }
   return <section className="panel studio-guided" id="guided-workout" aria-label="Guided workout">
     <div className="section-heading"><div><h2>{draft.plan.name}</h2><p>{position}/{order.length} sets · {secondsLabel(elapsed(draft, now))} elapsed</p></div>
-      <button className="quiet-button" type="button" onClick={() => store.draft(togglePause(draft, Date.now()))}>{paused ? 'Resume' : 'Pause'}</button></div>
+      <button className="quiet-button" type="button" onClick={() => saveDraft(togglePause(draft, Date.now()))}>{paused ? 'Resume' : 'Pause'}</button></div>
     <progress value={position} max={order.length} aria-label="Workout progress" />
     {remaining > 0 && <div className="studio-rest"><Timer /><strong>Rest · {secondsLabel(remaining)}</strong>
-      <button className="quiet-button" type="button" onClick={() => store.draft({ ...draft, restUntil: null, pausedRest: 0 })}>Skip rest</button></div>}
+      <button className="quiet-button" type="button" onClick={() => saveDraft({ ...draft, restUntil: null, pausedRest: 0 })}>Skip rest</button></div>}
     {exercise && <><ExerciseGuide exercise={exercise} />
       {previous && <p className="muted">Last time · {previous.session.day} · {previous.sets.map(set =>
         set.reps + (exercise.timed ? ' sec' : ' reps') + (set.kg ? ' at ' + set.kg + ' kg total' : ' unloaded')).join(' · ')}</p>}
@@ -204,14 +206,16 @@ function Guided({ draft, store, massKg, sessions }: { draft: WorkoutDraft; store
         const next = completeSet(draft, reps, kg, Date.now())
         if (next !== draft) {
           setNow(Date.now())
-          store.draft(next)
+          saveDraft(next)
         }
       }} /></>}
     {!exercise && <p>All planned sets complete.</p>}
+    <label>Workout notes<textarea key={draft.notes ?? ''} maxLength={500} defaultValue={draft.notes ?? ''}
+      onBlur={event => { if (event.target.value !== (draft.notes ?? '')) saveDraft({ ...draft, notes: event.target.value }) }} /></label>
     <div className="studio-guide-actions">
       <button type="button" disabled={!position} onClick={finish}>{exercise ? 'Finish & save completed sets' : 'Finish workout'}</button>
       <button className="quiet-button" type="button" onClick={() => {
-        if (confirm('Discard this workout and its unsaved sets?')) store.draft(null)
+        if (confirm('Discard this workout and its unsaved sets?')) saveDraft(null)
       }}>Discard workout</button>
     </div>
   </section>

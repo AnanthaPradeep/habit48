@@ -55,6 +55,13 @@ export class WorkoutStore {
     }
   }
   draft = (draft: WorkoutDraft | null) => this.persist({ draft })
+  saveRecoveredSession(session: WorkoutSession) {
+    if (this.state.sessions.some(item => item.id === session.id)) return
+    const saved = this.persist({ sessions: [...this.state.sessions, session],
+      draft: this.state.draft?.id === session.id ? null : this.state.draft,
+      pendingSessions: [...new Set([...this.state.pendingSessions, session.id])] })
+    if (saved) this.refresh()
+  }
   saveSession(session: WorkoutSession) {
     const saved = this.persist({ sessions: combine(this.state.sessions, [session]), draft: null,
       pendingSessions: [...new Set([...this.state.pendingSessions, session.id])] })
