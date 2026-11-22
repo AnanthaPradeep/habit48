@@ -23,7 +23,7 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
   height:auto;
   aspect-ratio:1;
   padding:0;
-  margin-bottom:8px;
+  margin-bottom:clamp(18px, 4vmin, 24px);
   background:transparent;
   border:0;
   box-shadow:none;
@@ -44,7 +44,7 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 :root[data-theme="dark"] #splash .pulse-box img { filter:drop-shadow(0 0 7px color-mix(in srgb,var(--hero-accent) 30%,transparent)); }
 #splash .splash-tagline { display:block; margin:0 auto 16px; font-size:.72rem; font-weight:650; letter-spacing:.18em; text-transform:uppercase; }
 @media (max-height:420px) {
-  #splash .pulse-box { width:clamp(150px, 45vh, 180px); }
+  #splash .pulse-box { width:clamp(150px, 45vh, 180px); margin-bottom:14px; }
   #splash .splash-tagline, #splash .heartbeat { margin-bottom:8px; }
 }
 #splash .heartbeat { color:var(--accent); filter:none; }

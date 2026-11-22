@@ -119,6 +119,7 @@ export class CloudJournal {
   }
 
   getSnapshot = () => this.state
+  accountEmail = () => this.state.unlocked ? this.session?.user.email : undefined
   workoutOwner = () => this.state.unlocked ? this.session?.user.id : undefined
   workoutToken = async () => {
     if (!this.state.unlocked) throw Error('Sign in first')

@@ -8,6 +8,7 @@ import './components/refinement.css'
 import './components/editorial.css'
 import './opal.css'
 import './luminous.css'
+import './surfaces.css'
 
 const url = new URL(window.location.href)
 if (url.searchParams.has('utm_source', 'chatgpt.com')) {

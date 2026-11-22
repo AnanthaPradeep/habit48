@@ -51,7 +51,7 @@ export default function MyGoals(data: GoalData) {
     }
     if (save(editing)) { edit(null); setNotice('Goal saved') }
   }
-  return <section className="panel progress-module" aria-label="My Goals">
+  return <section className="panel progress-module personal-goals" aria-label="My Goals">
     <div className="section-heading"><h2><Target size={22} /> My Goals</h2>
       <button type="button" onClick={() => create()}>Create personal goal</button></div>
     <div className="progress-banner"><p>{labelDate(day, { month: 'long', year: 'numeric' })}</p>

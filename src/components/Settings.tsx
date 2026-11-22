@@ -9,12 +9,13 @@ interface Props {
   theme: 'light' | 'dark'
   journal: Journal
   status: string
+  accountEmail?: string
   saveChallenge(start: string, target: number): boolean
   restore(journal: Journal): boolean
   refresh(): void
   logout(): void
 }
-export function Settings({ journal, status, saveChallenge, restore, refresh, logout, theme }: Props) {
+export function Settings({ journal, status, saveChallenge, restore, refresh, logout, theme, accountEmail }: Props) {
   const file = useRef<HTMLInputElement>(null)
   const [importStatus, setImportStatus] = useState('')
   const [challenge, setChallenge] = useState<{ start: string; target: string; baselineStart: string; baselineTarget: number } | null>(null)
@@ -42,6 +43,10 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
     } catch { setImportStatus('Invalid My Routine backup') }
   }
   return <div className="settings-grid">
+    {accountEmail && <section className="panel account-profile" aria-labelledby="account-heading">
+      <div className="section-heading"><h2 id="account-heading"><ShieldCheck aria-hidden="true" /> Signed-in account</h2></div>
+      <p>{accountEmail}</p>
+    </section>}
     <section className="panel">
       <div className="section-heading"><h2><Target aria-hidden="true" /> Personal challenge</h2></div>
       <form className="challenge-form" onSubmit={submit}>

@@ -1,0 +1,125 @@
+﻿/* Opal Nocturne surface roles. Color pairs keep content legible across the full gradient. */
+:root {
+  --surface-atmospheric: linear-gradient(142deg,#faf8fb,#eef2f4 60%,#e9e3f0);
+  --surface-primary: linear-gradient(145deg,#fbf8fb,#f1edf5 58%,#eae3f0);
+  --surface-solid: #f8f5fa;
+  --surface-nested: linear-gradient(140deg,#f4eff8,#eae4f0);
+  --surface-hydration: linear-gradient(145deg,#f1f7f5,#e2eeeb 55%,#d5e4e3);
+  --surface-nutrition: linear-gradient(145deg,#fcf4ef,#f4e9e2 54%,#eadbd5);
+  --surface-activity: linear-gradient(140deg,#f3f7fb,#e1eaf1 55%,#dce1ee);
+  --surface-sleep: linear-gradient(145deg,#f4effb,#e8ddf2 55%,#e2dbeb);
+  --surface-workout: linear-gradient(132deg,#f4effa,#e7e5f2 55%,#dee8f0);
+  --surface-goals: linear-gradient(138deg,#fcf7f6,#f1eaf3 56%,#e9e2f0);
+  --surface-editorial: radial-gradient(ellipse at 0% 0%,#6b5875,transparent 72%),linear-gradient(130deg,#574763,#483e58 65%,#504757);
+  --surface-progress: radial-gradient(ellipse at 90% 0%,#685676,transparent 70%),linear-gradient(145deg,#52415f,#463c54);
+  --surface-hover: linear-gradient(140deg,#f9f4fd,#e7def1);
+  --surface-picked: linear-gradient(138deg,#ece3f5,#ded1ed);
+  --glass-fill: #faf7fc;
+  --glass-tint: #e8dff1;
+  --glass-edge: #aaa0ba;
+  --glass-highlight: #ffffffad;
+  --image-seam: #504757;
+  --surface-depth: 0 10px 26px #493a5917;
+}
+:root[data-theme="dark"] {
+  --surface-atmospheric: linear-gradient(142deg,#373848,#313b45 61%,#353045);
+  --surface-primary: linear-gradient(145deg,#393549,#323042 56%,#302c3f);
+  --surface-solid: #363344;
+  --surface-nested: linear-gradient(140deg,#453e53,#3a354a);
+  --surface-hydration: linear-gradient(145deg,#3e5056,#35454c 55%,#303b48);
+  --surface-nutrition: linear-gradient(145deg,#51434a,#473c43 55%,#3d3541);
+  --surface-activity: linear-gradient(140deg,#3b4859,#323d50 55%,#33374a);
+  --surface-sleep: linear-gradient(145deg,#473e56,#383246 55%,#2d2b3e);
+  --surface-workout: linear-gradient(132deg,#453d55,#363347 55%,#303d4c);
+  --surface-goals: linear-gradient(138deg,#4e4052,#3d354a 56%,#343143);
+  --surface-editorial: radial-gradient(ellipse at 0% 0%,#564664,transparent 70%),linear-gradient(130deg,#43374f,#372d44 65%,#3e3545);
+  --surface-progress: radial-gradient(ellipse at 90% 0%,#5e4b71,transparent 70%),linear-gradient(145deg,#463752,#352d44);
+  --surface-hover: linear-gradient(140deg,#4d445c,#413951);
+  --surface-picked: linear-gradient(138deg,#574963,#4c405a);
+  --glass-fill: #3b374b;
+  --glass-tint: #493e55;
+  --glass-edge: #776987;
+  --glass-highlight: #e3d2fa1f;
+  --image-seam: #3e3545;
+  --surface-depth: 0 10px 27px #17131f32;
+}
+
+@media screen and (forced-colors:none) {
+  /* Opaque surfaces double as fallbacks for reduced transparency and older browsers. */
+  .panel { background:var(--surface-primary); }
+  :is(.calendar,.panel.release-week,.studio-week,.settings-grid > .panel) { background:var(--surface-atmospheric); }
+  :is(.today-timeline,.studio-preview,.workout-summary),
+  .studio :is(.studio-exercise,.studio-plan-grid button,.studio-categories button) { background:var(--surface-workout); }
+  :is(.meal-panel,.calories-panel,.meal-card) { background:var(--surface-nutrition); }
+  :is(.recovery,.release-quick-tiles > :first-child) { background:var(--surface-hydration); }
+  .release-quick-tiles > :nth-child(2) { background:var(--surface-activity); }
+  :is(.personal-goals,.brand-about,.account-profile) { background:var(--surface-goals); }
+  .monthly-review { background:var(--surface-sleep); }
+  :is(.routine-dialog,.chart,.report-filters,.studio-filters,.save-bar,.player-shell .studio-guide-actions) { background:var(--surface-solid); }
+  :is(.report-filters,.studio-filters,.meal-card) { padding:clamp(8px,1.5vw,14px); border-radius:14px; }
+  .chart { border-radius:14px; }
+
+  .editorial-hero { background:var(--surface-editorial); }
+  .editorial-hero > .editorial-image::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg,var(--image-seam),transparent 24%);
+    pointer-events:none;
+  }
+  :is(.momentum,.progress-banner,.panel.release-feature) { background:var(--surface-progress); }
+  :is(.habit,.progress-tile,.release-metrics > div,.media-rail-card) { background:var(--surface-nested); }
+  :is(.daily-editorial .stat,.release-metrics > div) { border:1px solid var(--line); }
+  .daily-editorial .stats > :nth-child(1), .release-metrics > :nth-child(1) { background:var(--surface-nutrition); }
+  .daily-editorial .stats > :nth-child(2), .release-metrics > :nth-child(4) { background:var(--surface-activity); }
+  .daily-editorial .stats > :nth-child(3), .release-metrics > :nth-child(3) { background:var(--surface-sleep); }
+  .daily-editorial .stats > :nth-child(4), .release-metrics > :nth-child(2) { background:var(--surface-hydration); }
+  .daily-editorial .stats > :nth-child(5) { background:var(--surface-workout); }
+  :is(.habit:has(input:checked),.navigation a[aria-current]) { background:var(--surface-picked); }
+
+  .account-profile { grid-column:1/-1; }
+  .account-profile p { margin:8px 0 0; overflow-wrap:anywhere; }
+  .media-rail-track { scrollbar-width:thin; scrollbar-color:var(--control-border) transparent; }
+
+  @media (min-width:951px) {
+    .daily-editorial .habit-panel { align-self:stretch; display:flex; flex-direction:column; }
+    .daily-editorial #habits { flex:1; grid-auto-rows:minmax(min-content,1fr); }
+    .daily-editorial .habit-card .icon-button { align-self:center; }
+  }
+
+  @supports (backdrop-filter:blur(8px)) {
+    @media not (prefers-reduced-transparency:reduce) {
+      :is(#loginGate,.sidebar,.calendar,.habit-panel,.release-quick,.today-timeline,.media-rail,.account-profile) {
+        background:linear-gradient(145deg,color-mix(in srgb,var(--glass-fill) 96%,transparent),
+          color-mix(in srgb,var(--glass-base,var(--glass-tint)) 89%,transparent));
+        border-color:color-mix(in srgb,var(--glass-edge) 63%,transparent);
+        box-shadow:inset 0 1px 0 var(--glass-highlight),var(--surface-depth);
+        backdrop-filter:blur(var(--glass-blur));
+      }
+      .calendar,.today-timeline { --glass-base:var(--canvas-blue); }
+      .release-quick,.account-profile { --glass-base:color-mix(in srgb,var(--glass-tint) 72%,var(--canvas-rose)); }
+      :is(.report-filters,.studio-filters,.routine-dialog:not(.player-shell),.player-shell .studio-guide-actions,.save-bar[data-dirty=true]) {
+        background:linear-gradient(145deg,color-mix(in srgb,var(--glass-fill) 97%,transparent),
+          color-mix(in srgb,var(--glass-tint) 94%,transparent));
+        box-shadow:inset 0 1px 0 var(--glass-highlight),var(--surface-depth);
+        backdrop-filter:blur(var(--glass-blur));
+      }
+      @media (max-width:760px) {
+        .navigation { background:color-mix(in srgb,var(--glass-fill) 95%,transparent); backdrop-filter:blur(var(--glass-blur)); }
+      }
+    }
+  }
+
+  @media (hover:hover) {
+    :is(.habit:not(:has(input:checked)),.studio .studio-exercise,.media-rail-card):hover {
+      background:var(--surface-hover);
+      box-shadow:inset 0 0 0 1px var(--control-border);
+    }
+  }
+  .media-rail-card:focus-within { box-shadow:inset 0 0 0 1px var(--control-border); }
+  :is(.studio-exercise,.media-rail-card:has(a:active)):active { box-shadow:inset 0 0 0 2px var(--control-border); }
+
+  @media (prefers-reduced-motion:reduce) {
+    .media-rail-track { scroll-behavior:auto; }
+  }
+}

@@ -249,7 +249,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
         <FlexibleRoutine schedules={[...planning.schedules.values()]} append={routine.append} />
       </Suspense>
         <CustomHabits {...customData} day={today()} manage />
-        <Settings theme={theme} journal={journal} status={status}
+        <Settings theme={theme} journal={journal} status={status} accountEmail={cloud.accountEmail()}
         saveChallenge={(start, target) => discard() && cloud.saveChallenge(start, target)}
         restore={backup => discard() && cloud.restore(backup)}
         refresh={() => void cloud.refresh(Boolean(draft))} logout={() => void cloud.logout(Boolean(draft))} /></div>}

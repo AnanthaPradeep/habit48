@@ -48,7 +48,7 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
     ...current.workouts.map(session => [session.day, session.name, sessionStatus(session), session.sets.length]),
     ['Reflection', reflection?.notes ?? ''], ['Next month’s focus', reflection?.focus ?? ''],
   ]
-  return <section className="panel progress-module" aria-label="Monthly Review">
+  return <section className="panel progress-module monthly-review" aria-label="Monthly Review">
     <EditorialHero asset="sleep"><p>{title}</p><h2>A month of progress.</h2>
       <p>{current.end > day ? 'Comparison uses the first ' + comparable.elapsedDays + ' days of each month.' : 'Compared with the previous calendar month.'}</p></EditorialHero>
     <div className="progress-actions">
