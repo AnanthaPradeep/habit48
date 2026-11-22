@@ -7,7 +7,7 @@ import { HabitDetail, habitRecord } from './HabitDetail'
 import type { ScheduleFor } from '../domain/review'
 import { labelDate, shift, monday, today, habits, numberLabel, type Entry, type Journal } from '../domain/journal'
 import { total } from '../domain/calories'
-import { BrandLogo } from './Branding'
+import { BrandLockup } from './Branding'
 
 export const views = [
   { id: 'today', label: 'Today', Icon: LayoutGrid },
@@ -24,7 +24,7 @@ export const getView = (): View => location.hash === '#monthly' ? 'monthly' :
 export function Sidebar({ view, logged, theme }: { view: View; logged: number; theme: 'light' | 'dark' }) {
   return <aside className="sidebar">
     <a className="brand" href="#today" aria-label="My Routine home">
-      <BrandLogo className="brand-lockup" theme={theme} layout="horizontal" width={184} decorative />
+      <BrandLockup theme={theme} decorative />
     </a>
     <nav className="navigation" aria-label="Main navigation">
       {views.map(({ id, label, Icon }) => <a key={id} href={'#' + id} aria-current={view === id || (id === 'review' && view === 'monthly') ? 'page' : undefined}>
@@ -56,7 +56,7 @@ export function PageHeader({ view, day, theme, toggle, connection, lastSynced }:
   const title = view === 'journal' ? 'Daily journal' : view === 'today' ? day === today() ? 'Make today count.' : 'Daily routine'
     : view === 'review' ? 'Weekly Review' : view === 'monthly' ? 'Monthly Review' : views.find(item => view === item.id)?.label
   return <header className="page-header">
-    <div><p className="eyebrow">{dated ? labelDate(day, { dateStyle: 'full' }) : 'My Routine'}</p>
+    <div><p className="eyebrow">{dated ? labelDate(day, { dateStyle: 'full' }) : 'My ROUTINE'}</p>
       <h1 ref={heading} tabIndex={-1}>{title}</h1></div>
     <div className="header-actions">
       <div className="sync-indicator" data-connection={connection}>

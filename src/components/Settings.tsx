@@ -1,4 +1,4 @@
-import { BrandLogo } from './Branding'
+import { BrandLockup } from './Branding'
 import { version } from '../../package.json'
 import { useRef, useState, type FormEvent } from 'react'
 import { challengeCount, isJournal, validDate, type Journal } from '../domain/journal'
@@ -69,8 +69,8 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
       {importStatus && <p role="status">{importStatus}</p>}
     </section>
     <section className="panel brand-about" aria-labelledby="about-heading">
-      <BrandLogo theme={theme} layout="horizontal" width={220} decorative />
-      <div><h2 id="about-heading">About My Routine</h2><p>Version {version} · Private wellness journal</p></div>
+      <BrandLockup theme={theme} tagline decorative />
+      <div><h2 id="about-heading">About My ROUTINE</h2><p>Version {version} · Private wellness journal</p></div>
     </section>
   </div>
 }

@@ -2,16 +2,32 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 type BrandTheme = 'light' | 'dark'
-type LogoLayout = 'stacked' | 'horizontal' | 'symbol' | 'wordmark'
-const proportions = { stacked: [900, 850], horizontal: [1260, 420], symbol: [512, 512], wordmark: [900, 240] } as const
+function BrandSymbol({ theme, width }: { theme: BrandTheme; width: number }) {
+  return <img key={theme} src={import.meta.env.BASE_URL + 'brand/logos/' + theme + '/symbol-luminous-v1.svg'}
+    width={width} height={width} alt="" />
+}
 
-export function BrandLogo({ theme, layout, width, decorative = false, className }: {
-  theme: BrandTheme; layout: LogoLayout; width: number; decorative?: boolean; className?: string
+function BrandWordmark() {
+  return <span className="brand-wordmark" aria-hidden="true">
+    <span className="brand-wordmark-my">My</span>
+    <span className="brand-wordmark-routine"><svg viewBox="0 0 28 32" aria-hidden="true">
+      <path d="M5 28V5h10a7 7 0 0 1 0 14H5m10 0 9 9" fill="none" stroke="currentColor"
+        strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>OUTINE</span>
+  </span>
+}
+
+export function BrandLockup({ theme, stacked = false, tagline = false, decorative = false }: {
+  theme: BrandTheme; stacked?: boolean; tagline?: boolean; decorative?: boolean
 }) {
-  const [w, h] = proportions[layout]
-  const alt = decorative ? '' : layout === 'symbol' || layout === 'wordmark' ? 'My Routine' : 'My Routine · Daily Balance'
-  return <img key={theme} className={className} src={import.meta.env.BASE_URL + 'brand/logos/' + theme + '/' + layout + '-luminous-v1.svg'}
-    width={width} height={Math.round(width * h / w)} alt={alt} />
+  return <span className={'brand-lockup' + (stacked ? ' brand-lockup-stacked' : '') + (' brand-lockup-' + theme)}
+    role={decorative ? undefined : 'img'} aria-hidden={decorative || undefined}
+    aria-label={decorative ? undefined : tagline ? 'My ROUTINE, Daily Balance' : 'My ROUTINE'}>
+    <BrandSymbol theme={theme} width={stacked ? 118 : 48} />
+    <span className="brand-lockup-copy" aria-hidden="true"><BrandWordmark />
+      {tagline && <small className="brand-lockup-tagline">Daily Balance</small>}
+    </span>
+  </span>
 }
 
 export function Splash({ theme }: { theme: BrandTheme }) {
@@ -22,8 +38,8 @@ export function Splash({ theme }: { theme: BrandTheme }) {
   }, [])
   return <div id="splash" role="status" aria-label="Loading My Routine" aria-hidden={done} className={done ? 'done' : undefined}>
     <div className="splash-inner">
-      <div className="pulse-box"><BrandLogo theme={theme} layout="symbol" width={128} decorative /></div>
-      <BrandLogo className="splash-wordmark" theme={theme} layout="wordmark" width={206} />
+      <div className="pulse-box"><BrandSymbol theme={theme} width={128} /></div>
+      <BrandWordmark />
       <small className="splash-tagline">Daily Balance</small>
       <svg className="heartbeat" viewBox="0 0 180 44" aria-hidden="true">
         <path d="M0 25H48L59 15L69 30L82 3L95 41L107 25H180" fill="none" stroke="currentColor"
@@ -48,7 +64,7 @@ export function Login({ busy, status, login, theme }: LoginProps) {
     await login(String(data.get('username')), String(data.get('password')))
   }
   return <section id="loginGate">
-    <div className="login-brand"><BrandLogo theme={theme} layout="stacked" width={194} /></div>
+    <div className="login-brand"><BrandLockup theme={theme} stacked tagline /></div>
     <h1>Welcome back.</h1>
     <p className="login-sub">Small steps. Every day.</p>
     <form id="loginForm" onSubmit={submit}>

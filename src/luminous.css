@@ -13,7 +13,6 @@
 body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 .page-header h1, .section-heading h2, #loginGate h1 { font-family: Sora, system-ui, sans-serif; }
 .page-header h1 { font-weight: 550; }
-.brand img.brand-lockup { display:block; max-width:100%; height:auto; border-radius:0; }
 .login-brand img { display:block; max-width:100%; height:auto; margin-inline:auto; }
 #splash { background:var(--background-gradient); color:var(--ink); }
 #splash .pulse-box {
@@ -26,7 +25,21 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
   margin-bottom:8px;
 }
 #splash .pulse-box img { height:auto; border-radius:0; }
-#splash .splash-wordmark { width:min(100%,238px); height:auto; margin:0 auto; }
+.brand-wordmark {
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:.2em;
+  color:var(--hero);
+  font-size:clamp(1.55rem, 6.9vw, 2.2rem);
+  line-height:1.16;
+  white-space:nowrap;
+}
+.brand-wordmark-my { font-family:Georgia,serif; font-style:italic; font-weight:400; }
+.brand-wordmark-routine { font-family:Sora,system-ui,sans-serif; font-weight:700; letter-spacing:.045em; }
+.brand-wordmark-routine svg { width:.65em; height:.75em; margin-inline-end:.025em; vertical-align:-.015em; }
+:root[data-theme="dark"] .brand-wordmark { color:var(--hero-text); }
+:root[data-theme="dark"] #splash .pulse-box img { filter:drop-shadow(0 0 7px color-mix(in srgb,var(--hero-accent) 30%,transparent)); }
 #splash .splash-tagline { display:block; margin:0 auto 16px; font-size:.72rem; font-weight:650; letter-spacing:.18em; text-transform:uppercase; }
 @media (max-height:420px) {
   #splash .pulse-box { width:clamp(150px, 45vh, 180px); }
@@ -35,9 +48,18 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 #splash .heartbeat { color:var(--accent); filter:none; }
 .settings-grid .brand-about { grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:16px 24px; }
 .brand-about img { display:block; max-width:100%; height:auto; }
-@media (max-width:760px) {
-  .brand img.brand-lockup { width:144px; }
-}
 @media (min-width:761px) and (max-width:1024px) {
   .settings-grid .challenge-form { grid-template-columns:1fr; }
+}
+
+.brand-lockup { display:inline-flex; align-items:center; gap:8px; max-width:100%; --lockup-size:1.14rem; }
+.brand-lockup img { display:block; flex:none; height:auto; border-radius:0; }
+.brand-lockup .brand-wordmark { font-size:var(--lockup-size); justify-content:flex-start; }
+.brand-lockup-copy { display:grid; gap:4px; min-width:0; }
+.brand-lockup-tagline { display:block; font-size:.6rem; font-weight:650; letter-spacing:.16em; text-transform:uppercase; }
+.brand-lockup-stacked { display:flex; flex-direction:column; gap:12px; --lockup-size:clamp(1.35rem,6vw,1.95rem); }
+.brand-lockup-stacked .brand-lockup-copy { justify-items:center; }
+.brand .brand-lockup img { width:42px; height:auto; }
+@media (max-width:760px) {
+  .brand .brand-lockup { --lockup-size:1.06rem; }
 }

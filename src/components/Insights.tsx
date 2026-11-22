@@ -1,4 +1,4 @@
-import { BrandLogo } from './Branding'
+import { BrandLockup } from './Branding'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useState } from 'react'
 import { report, type Filters } from '../domain/analytics'
@@ -66,7 +66,7 @@ function ValueList({ values }: { values: ReturnType<typeof report>['values'] }) 
 
 export function ReportPrint({ journal, filters, scheduled = () => allHabits }: Props) {
   const { rows, values, summary } = report(journal, filters, scheduled)
-  return <section id="printReport"><BrandLogo theme="light" layout="horizontal" width={180} decorative />
+  return <section id="printReport"><BrandLockup theme="light" tagline decorative />
     <h1>My Routine — Report</h1><p>{filters.from} to {filters.to}</p><p>{summary}</p><h2>Progress</h2>
     <ValueList values={values} />
     {rows.map(([day, entry]) => {

@@ -26,7 +26,7 @@ test('visual audit of every route and supported viewport', async ({ page, contex
   await page.screenshot({ path: resolve(folder, 'login-390-light.png') })
   await page.emulateMedia({ colorScheme: 'dark' })
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await expect(page.locator('.login-brand img')).toHaveAttribute('src', /dark\/stacked-luminous-v1\.svg$/)
+  await expect(page.locator('.login-brand img')).toHaveAttribute('src', /dark\/symbol-luminous-v1\.svg$/)
   await page.locator('.login-brand img').evaluate(image => (image as HTMLImageElement).decode())
   await page.screenshot({ path: resolve(folder, 'login-390-dark.png') })
   await page.emulateMedia({ colorScheme: 'light' })
