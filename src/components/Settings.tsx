@@ -70,7 +70,7 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
     </section>
     <section className="panel brand-about" aria-labelledby="about-heading">
       <BrandLockup theme={theme} tagline decorative />
-      <div><h2 id="about-heading">About My ROUTINE</h2><p>Version {version} · Private wellness journal</p></div>
+      <div><h2 id="about-heading">About My-Routine</h2><p>Version {version} · Private wellness journal</p></div>
     </section>
   </div>
 }

@@ -56,7 +56,7 @@ export function PageHeader({ view, day, theme, toggle, connection, lastSynced }:
   const title = view === 'journal' ? 'Daily journal' : view === 'today' ? day === today() ? 'Make today count.' : 'Daily routine'
     : view === 'review' ? 'Weekly Review' : view === 'monthly' ? 'Monthly Review' : views.find(item => view === item.id)?.label
   return <header className="page-header">
-    <div><p className="eyebrow">{dated ? labelDate(day, { dateStyle: 'full' }) : 'My ROUTINE'}</p>
+    <div><p className="eyebrow">{dated ? labelDate(day, { dateStyle: 'full' }) : 'My-Routine'}</p>
       <h1 ref={heading} tabIndex={-1}>{title}</h1></div>
     <div className="header-actions">
       <div className="sync-indicator" data-connection={connection}>

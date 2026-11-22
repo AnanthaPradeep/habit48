@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "My ROUTINE",
-  "short_name": "My ROUTINE",
+  "name": "My-Routine",
+  "short_name": "My-Routine",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -27,5 +27,5 @@
       "purpose": "maskable"
     }
   ],
-  "description": "My ROUTINE · Daily Balance"
+  "description": "My-Routine · Daily Balance"
 }

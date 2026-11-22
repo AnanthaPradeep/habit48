@@ -26,18 +26,16 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 }
 #splash .pulse-box img { height:auto; border-radius:0; }
 .brand-wordmark {
-  display:flex;
-  align-items:baseline;
-  justify-content:center;
-  gap:.2em;
+  display:block;
+  font-family:Sora,system-ui,sans-serif;
+  font-weight:650;
+  letter-spacing:-.035em;
+  text-align:center;
   color:var(--hero);
   font-size:clamp(1.55rem, 6.9vw, 2.2rem);
   line-height:1.16;
   white-space:nowrap;
 }
-.brand-wordmark-my { font-family:Georgia,serif; font-style:italic; font-weight:400; }
-.brand-wordmark-routine { font-family:Sora,system-ui,sans-serif; font-weight:700; letter-spacing:.045em; }
-.brand-wordmark-routine svg { width:.65em; height:.75em; margin-inline-end:.025em; vertical-align:-.015em; }
 :root[data-theme="dark"] .brand-wordmark { color:var(--hero-text); }
 :root[data-theme="dark"] #splash .pulse-box img { filter:drop-shadow(0 0 7px color-mix(in srgb,var(--hero-accent) 30%,transparent)); }
 #splash .splash-tagline { display:block; margin:0 auto 16px; font-size:.72rem; font-weight:650; letter-spacing:.18em; text-transform:uppercase; }
@@ -54,7 +52,7 @@ body, .eyebrow { font-family: Inter, system-ui, sans-serif; }
 
 .brand-lockup { display:inline-flex; align-items:center; gap:8px; max-width:100%; --lockup-size:1.14rem; }
 .brand-lockup img { display:block; flex:none; height:auto; border-radius:0; }
-.brand-lockup .brand-wordmark { font-size:var(--lockup-size); justify-content:flex-start; }
+.brand-lockup .brand-wordmark { font-size:var(--lockup-size); }
 .brand-lockup-copy { display:grid; gap:4px; min-width:0; }
 .brand-lockup-tagline { display:block; font-size:.6rem; font-weight:650; letter-spacing:.16em; text-transform:uppercase; }
 .brand-lockup-stacked { display:flex; flex-direction:column; gap:12px; --lockup-size:clamp(1.35rem,6vw,1.95rem); }

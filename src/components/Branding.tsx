@@ -8,13 +8,7 @@ function BrandSymbol({ theme, width }: { theme: BrandTheme; width: number }) {
 }
 
 function BrandWordmark() {
-  return <span className="brand-wordmark" aria-hidden="true">
-    <span className="brand-wordmark-my">My</span>
-    <span className="brand-wordmark-routine"><svg viewBox="0 0 28 32" aria-hidden="true">
-      <path d="M5 28V5h10a7 7 0 0 1 0 14H5m10 0 9 9" fill="none" stroke="currentColor"
-        strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>OUTINE</span>
-  </span>
+  return <span className="brand-wordmark" aria-hidden="true">My-Routine</span>
 }
 
 export function BrandLockup({ theme, stacked = false, tagline = false, decorative = false }: {
@@ -22,7 +16,7 @@ export function BrandLockup({ theme, stacked = false, tagline = false, decorativ
 }) {
   return <span className={'brand-lockup' + (stacked ? ' brand-lockup-stacked' : '') + (' brand-lockup-' + theme)}
     role={decorative ? undefined : 'img'} aria-hidden={decorative || undefined}
-    aria-label={decorative ? undefined : tagline ? 'My ROUTINE, Daily Balance' : 'My ROUTINE'}>
+    aria-label={decorative ? undefined : tagline ? 'My-Routine, Daily Balance' : 'My-Routine'}>
     <BrandSymbol theme={theme} width={stacked ? 118 : 48} />
     <span className="brand-lockup-copy" aria-hidden="true"><BrandWordmark />
       {tagline && <small className="brand-lockup-tagline">Daily Balance</small>}
