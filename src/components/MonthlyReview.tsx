@@ -32,7 +32,7 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
   ] as const
   const goals = data.goals.filter(goal => goal.start <= current.end && goal.end >= current.start).map(goal => {
     const result = goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled,
-      day < current.end ? day : current.end, data.customDates)
+      day < current.end ? day : current.end, data.customDates, data.activityWalking)
     return { title: goal.title, status: result.achieved ? 'Achieved · ' + result.achieved :
       goal.state === 'Archived' ? 'Archived' : goal.end < day && goal.end <= current.end ? 'Missed' : 'Incomplete' }
   })

@@ -9,6 +9,7 @@ import type { WorkoutSession } from '../domain/workout'
 const frequencies: Frequency[] = ['Daily', 'Weekly', 'Monthly', 'Custom']
 const kinds: GoalKind[] = ['Workout', 'Walking', 'Hydration', 'Sleep', 'Habit', 'Custom habit', 'Weight', 'Reading', 'Custom']
 export interface GoalData {
+  activityWalking?: Readonly<Record<string, number>>
   journal: Journal
   sessions: WorkoutSession[]
   goals: Versioned<PersonalGoal>[]
@@ -28,7 +29,7 @@ export default function MyGoals(data: GoalData) {
   const [amount, setAmount] = useState('')
   const active = data.goals.filter(goal => goal.state !== 'Archived' && goal.start <= day && goal.end >= day)
   const sorted = [...data.goals].sort((a, b) => b.end.localeCompare(a.end))
-  const achieved = active.filter(goal => goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled, day, data.customDates).achieved).length
+  const achieved = active.filter(goal => goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled, day, data.customDates, data.activityWalking).achieved).length
   function create(template?: typeof goalTemplates[number], original?: PersonalGoal) {
     const frequency = template?.frequency ?? original?.frequency ?? 'Monthly'
     const anchor = original && original.end >= day ? nextDay(original.end) : day
@@ -96,7 +97,7 @@ export default function MyGoals(data: GoalData) {
       <div className="progress-actions form-wide dialog-actions"><button type="button" className="quiet-button" onClick={() => edit(null)}>Cancel</button><button>Save goal</button></div>
     </form>}
     <div className="progress-grid">{(history ? sorted : active).map(goal => {
-      const progress = goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled, day, data.customDates)
+      const progress = goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled, day, data.customDates, data.activityWalking)
       return <article className={'progress-tile' + (progress.achieved ? ' goal-achieved' : '')} key={goal.id}>
         <span className="goal-emblem"><Target size={18} aria-hidden="true" /></span>
         <small>{goal.frequency} · {goal.state}</small><h3>{goal.title}</h3>

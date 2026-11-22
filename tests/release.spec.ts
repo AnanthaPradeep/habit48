@@ -152,3 +152,38 @@ test('quick logs, reviews, goals, schedules and planner sync between desktop and
     await expect(phone.getByRole('region', { name: 'Workout calendar' }).getByText(/Rescheduled to/)).toBeVisible()
   } finally { await phoneContext.close() }
 })
+
+test('opens full cards and keeps carousel and route navigation in sync', async ({ page, context }, info) => {
+  await journalBackend().attach(context)
+  await login(page)
+  const rail = page.getByRole('region', { name: 'Explore your routine' })
+  const photo = rail.locator('.media-rail-card').first().locator('.editorial-image')
+  await photo.scrollIntoViewIfNeeded()
+  const bounds = await photo.boundingBox()
+  if (!bounds) throw Error('Workout card image was unavailable')
+  const x = bounds.x + bounds.width / 2
+  const y = bounds.y + bounds.height / 2
+  if (info.project.name === 'mobile') await page.touchscreen.tap(x, y)
+  else await page.mouse.click(x, y)
+  await expect(page.getByRole('heading', { level: 1, name: 'Workout' })).toBeFocused()
+  const workouts = page.getByRole('region', { name: 'Recommended workouts' })
+  const preview = workouts.getByRole('button', { name: /^Preview / }).first()
+  await preview.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('region', { name: 'Workout preview' }).getByRole('heading')).toBeFocused()
+  await page.goBack()
+  await expect(page.getByRole('heading', { level: 1, name: 'Make today count.' })).toBeVisible()
+
+  const next = rail.getByRole('button', { name: 'Next explore your routine' })
+  await next.click()
+  await expect(rail.getByRole('button', { name: 'Show card 2' })).toHaveAttribute('aria-current', 'true')
+  await next.click()
+  await expect(rail.getByRole('button', { name: 'Show card 3' })).toHaveAttribute('aria-current', 'true')
+  await expect(next).toBeDisabled()
+  await rail.getByRole('link', { name: 'Open Weekly Review' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Weekly Review' })).toBeFocused()
+  await nav(page, 'Today')
+  await page.getByRole('link', { name: 'Calories', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: 'Daily journal' })).toBeFocused()
+})

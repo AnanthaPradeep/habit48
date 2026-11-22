@@ -12,6 +12,7 @@ import { BrandLockup } from './Branding'
 export const views = [
   { id: 'today', label: 'Today', Icon: LayoutGrid },
   { id: 'journal', label: 'Journal', Icon: BookOpen },
+  { id: 'activity', label: 'Activity', Icon: Footprints },
   { id: 'workout', label: 'Workout', Icon: Dumbbell },
   { id: 'review', label: 'Review', Icon: CalendarDays },
   { id: 'insights', label: 'Insights', Icon: ChartNoAxesColumn },
@@ -115,11 +116,11 @@ export function Today({ entry, day, start, due, streak, onToggle, journal, sched
   const calories = total(entry.cal)
   const reducedMotion = useReducedMotion()
   const stats = [
-    { Icon: Flame, label: 'Calories', value: calories === null ? null : Math.round(calories), unit: 'kcal' },
-    { Icon: Footprints, label: 'Walking', value: entry.m[1], unit: 'min' },
-    { Icon: Moon, label: 'Sleep', value: entry.m[2], unit: 'hrs' },
-    { Icon: Droplet, label: 'Water', value: entry.m[0], unit: 'L' },
-    { Icon: Dumbbell, label: 'Workouts', value: workoutCount, unit: workoutCount === 1 ? 'session' : 'sessions' },
+    { Icon: Flame, label: 'Calories', value: calories === null ? null : Math.round(calories), unit: 'kcal', destination: 'journal' },
+    { Icon: Footprints, label: 'Walking', value: entry.m[1], unit: 'min', destination: 'journal' },
+    { Icon: Moon, label: 'Sleep', value: entry.m[2], unit: 'hrs', destination: 'journal' },
+    { Icon: Droplet, label: 'Water', value: entry.m[0], unit: 'L', destination: 'journal' },
+    { Icon: Dumbbell, label: 'Workouts', value: workoutCount, unit: workoutCount === 1 ? 'session' : 'sessions', destination: 'workout' },
   ]
   const hour = new Date().getHours()
   return <div className="daily-editorial">
@@ -128,7 +129,7 @@ export function Today({ entry, day, start, due, streak, onToggle, journal, sched
       <p>{due.length ? count + ' of ' + due.length + ' habits complete' : 'A day for rest and recovery'}</p></EditorialHero>
     <div className="bento">
       <section className="momentum" aria-labelledby="momentumTitle">
-        <div><h2 className="eyebrow" id="momentumTitle">Habit progress</h2>
+        <div><h2 className="eyebrow" id="momentumTitle"><a className="card-action" href="#review">Habit progress</a></h2>
           <strong>{due.length ? percent + '%' : 'Rest'}</strong>
           <p>{due.length ? count + ' of ' + due.length + ' habits completed' : 'No habits scheduled today.'}</p>
           {streak > 0 && <small>{streak} scheduled {streak === 1 ? 'day' : 'days'} in a row</small>}</div>
@@ -138,13 +139,13 @@ export function Today({ entry, day, start, due, streak, onToggle, journal, sched
           <Check aria-hidden="true" />
         </motion.div>
       </section>
-      <div className="stats">{stats.map(({ Icon, label, value, unit }) => <article key={label} className="stat">
-        <Icon aria-hidden="true" /><p>{label}</p><strong>{value == null || value === '' ? '—' : numberLabel.format(Number(value))}</strong> <small>{unit}</small>
+      <div className="stats">{stats.map(({ Icon, label, value, unit, destination }) => <article key={label} className="stat">
+        <Icon aria-hidden="true" /><p><a className="card-action" href={'#' + destination}>{label}</a></p><strong>{value == null || value === '' ? '—' : numberLabel.format(Number(value))}</strong> <small>{unit}</small>
       </article>)}</div>
     </div>
     <aside className="today-side" aria-label="Actions and planned training">
       {quick}
-      <section className="panel today-timeline"><h2>Workout plan</h2><p>{workout}</p><a href="#workout">Open Workout Studio</a>
+      <section className="panel today-timeline"><h2>Workout plan</h2><p>{workout}</p><a className="card-action" href="#workout">Open Workout Studio</a>
         <h3>Coming up</h3>{upcoming.length ? <ol>{upcoming.map(item => <li key={item.day}>
           <time dateTime={item.day}>{labelDate(item.day, { weekday: 'short', day: 'numeric' })}</time><strong>{item.title}</strong>
         </li>)}</ol> : <p>No plans in the next seven days.</p>}</section>

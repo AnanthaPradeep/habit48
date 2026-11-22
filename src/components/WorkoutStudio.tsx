@@ -99,6 +99,15 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       track.getBoundingClientRect().left - (track.clientWidth - item.clientWidth) / 2 })
   }
 
+  function showPreview(plan: WorkoutPlan) {
+    setPreview(plan)
+    requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLHeadingElement>('.studio-preview h2')
+      heading?.focus({ preventScroll: true })
+      heading?.scrollIntoView({ block: 'center' })
+    })
+  }
+
   function start(plan: WorkoutPlan) {
     if (state.draft && !confirm('Replace the workout currently in progress?')) return
     if (saveDraft({ id: crypto.randomUUID(), day: today(), plan, sets: [], elapsed: 0,
@@ -114,7 +123,7 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
         <p className="eyebrow studio-today">{selected === dayIndex() ? 'TODAY’S WORKOUT' : 'WEEKLY WORKOUT'}</p>
         <h3>{heroName}</h3>
         <p>{todayState ?? (heroPlan ? `${current.detail} · ${heroPlan.steps.length} exercises · Beginner-friendly` : 'Take a break and recover.')}</p>
-        {heroPlan && (!todayState || todayState === 'Planned') && <button onClick={() => setPreview(heroPlan)}>View workout <ArrowRight size={16} /></button>}</div>
+        {heroPlan && (!todayState || todayState === 'Planned') && <button onClick={() => showPreview(heroPlan)}>View workout <ArrowRight size={16} /></button>}</div>
     </EditorialHero>
     <p className="studio-safety"><HeartPulse size={18} />Get medical clearance before strength training if you have a history of CVST. Start gently once cleared, breathe continuously, and avoid straining.</p>
     {state.draft && (immersive ? <Modal title="Workout player" className="player-shell" close={() => expand(false)}>
@@ -125,7 +134,7 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       <p>{finished.name} · {finished.sets.length} sets · {Math.max(1, Math.round(finished.seconds / 60))} min · {sessionStatus(finished)}</p>
     </section>}
     {preview && <section className="panel studio-preview" aria-label="Workout preview">
-      <div className="section-heading"><h2>{preview.name}</h2><button type="button" className="icon-button" aria-label="Close workout preview" onClick={() => setPreview(null)}><X /></button></div>
+      <div className="section-heading"><h2 tabIndex={-1}>{preview.name}</h2><button type="button" className="icon-button" aria-label="Close workout preview" onClick={() => setPreview(null)}><X /></button></div>
       <p>{preview.minutes} min planned · {sequence(preview).length} sets</p>
       <ol>{preview.steps.map((item, i) => {
         const exercise = exerciseById.get(item.exerciseId)
@@ -134,7 +143,7 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       <button type="button" onClick={() => start(preview)}>Start workout</button>
     </section>}
     <WeeklyPlanner slots={planner} plans={plans} sessions={state.sessions}
-      append={append} start={plan => { setPreview(plan); requestAnimationFrame(() => document.querySelector('.studio-preview')?.scrollIntoView({ block: 'center' })) }}
+      append={append} start={showPreview}
       status={planningStatus} />
     <section className="panel studio-week">
       <div className="section-heading"><h2><CalendarDays aria-hidden="true" /> Suggested week</h2><div className="calendar-actions">
@@ -160,15 +169,13 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
     <MediaRail label="Recommended workouts" items={[full, upper, lower, warmup, cooldown].map(plan => ({
       id:plan.id, content:<>{plan.id === cooldown.id ? <EditorialImage asset="mobility" decorative /> :
         <ExerciseDemo exercise={exerciseById.get(plan.steps[0].exerciseId)!} thumbnail />}<h3>{plan.name}</h3>
-        <p>{plan.minutes} min · {plan.steps.length} exercises</p><button className="quiet-button" type="button" onClick={() => {
-          setPreview(plan); requestAnimationFrame(() => document.querySelector('.studio-preview')?.scrollIntoView({ block:'center' }))
-        }}>Preview {plan.name}</button></>
+        <p>{plan.minutes} min · {plan.steps.length} exercises</p><button className="quiet-button card-action" type="button" onClick={() => showPreview(plan)}>Preview {plan.name}</button></>
     }))} />
     <section className="panel">
       <div className="section-heading"><h2>Workout plans</h2><button type="button" onClick={() => setBuilding(value => !value)}><Plus size={16} /> Custom workout</button></div>
       {building && <Builder save={plan => { if (store.savePlan(plan)) setBuilding(false) }} />}
       <div className="studio-plan-grid">{availablePlans.map(plan => <button key={plan.id} className="quiet-button"
-        onClick={() => { setPreview(plan); requestAnimationFrame(() => document.querySelector('.studio-preview')?.scrollIntoView({ block: 'center' })) }}>
+        onClick={() => showPreview(plan)}>
         <span>{plan.name}<small>{plan.minutes} min · {plan.steps.length} exercises</small></span><ArrowRight size={16} />
       </button>)}</div>
     </section>

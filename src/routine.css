@@ -155,7 +155,7 @@ summary { cursor: pointer; font-weight: 650; }
   .brand img { width: 36px; height: 36px; border-radius: 10px; }
   .brand small, .sidebar-summary { display: none; }
   .navigation {
-    position: fixed; z-index: 10; bottom: 0; inset-inline: 0; grid-template-columns: repeat(6, minmax(0,1fr));
+    position: fixed; z-index: 10; bottom: 0; inset-inline: 0; grid-template-columns: repeat(7, minmax(0,1fr));
     gap: 4px; background: var(--surface); border-top: 1px solid var(--line);
     padding: 5px 8px max(5px, env(safe-area-inset-bottom));
   }

@@ -26,6 +26,7 @@ import './components/release.css'
 import './components/progress.css'
 const MyGoals = lazy(() => import('./components/MyGoals'))
 const MonthlyReview = lazy(() => import('./components/MonthlyReview'))
+const ActivityStudio = lazy(() => import('./components/ActivityStudio'))
 const WorkoutStudio = lazy(() => import('./components/WorkoutStudio'))
 const WeeklyReview = lazy(() => import('./components/WeeklyReview'))
 const FlexibleRoutine = lazy(() => import('./components/FlexibleRoutine'))
@@ -72,6 +73,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
   const [day, setDay] = useState(today)
   const [draft, setDraft] = useState<{ entry: Entry; baseline: Entry | undefined } | null>(null)
   const [warnings, setWarnings] = useState<string[] | null>(null)
+  const [activityWalking, setActivityWalking] = useState<Readonly<Record<string, number>>>({})
   const [formStatus, setFormStatus] = useState('')
   const [filters, setFilters] = useState<Filters>(() => ({ from: shift(today(), -30), to: today(), period: 'daily', metric: 'habit' }))
   const [printFilters, setPrintFilters] = useState<Filters | null>(null)
@@ -97,7 +99,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
     return Boolean(schedule?.recovery?.includes(weekdayIndex(date)) || schedule?.days[weekdayIndex(date)]?.length === 0)
   }
   const customData = { history: habitHistory, logs: planning.habitLogs, isRest, append: routine.append }
-  const goalData = { journal, sessions, goals: [...planning.personalGoals.values()],
+  const goalData = { journal, sessions, activityWalking, goals: [...planning.personalGoals.values()],
     logs: [...planning.goalLogs.values()], scheduled, append: routine.append,
     customOptions: customHabitsFor(habitHistory, today()),
     customDates: (id: string) => [...planning.habitLogs.values()].flatMap(log => {
@@ -205,9 +207,9 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
       {view === 'today' && <Suspense fallback={<RouteSkeleton label="My Goals" />}><MyGoals {...goalData} /></Suspense>}
       {view === 'today' && day <= today() && <CustomHabits {...customData} day={day} />}
       {view === 'today' && <MediaRail label="Explore your routine" items={[
-        { id: 'train', content: <><EditorialImage asset="training" decorative /><h3>Home training</h3><a href="#workout">Explore workouts</a></> },
-        { id: 'meals', content: <><EditorialImage asset="lunch" decorative /><h3>Log your meals</h3><a href="#journal">Open journal</a></> },
-        { id: 'review', content: <><EditorialImage asset="walking" decorative /><h3>Review your progress</h3><a href="#review">Open Weekly Review</a></> },
+        { id: 'train', content: <><EditorialImage asset="training" decorative /><h3>Home training</h3><a className="card-action" href="#workout">Explore workouts</a></> },
+        { id: 'meals', content: <><EditorialImage asset="lunch" decorative /><h3>Log your meals</h3><a className="card-action" href="#journal">Open journal</a></> },
+        { id: 'review', content: <><EditorialImage asset="walking" decorative /><h3>Review your progress</h3><a className="card-action" href="#review">Open Weekly Review</a></> },
       ]} />}
       <SmartReminders owner={owner} settings={view === 'settings'}
         workoutDays={[...planning.planner.values()].filter(plan => plan.mode === 'workout' && !plan.movedTo).map(plan => plan.day)}
@@ -224,6 +226,9 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
           <a href="#workout">Open workout history</a>
         </section>}
       </div>
+      {owner && <Suspense fallback={view === 'activity' ? <RouteSkeleton label="Activity Studio" /> : null}>
+        <ActivityStudio key={owner} owner={owner} view={view} day={day} massKg={massKg} token={cloud.workoutToken} onWalking={setActivityWalking} />
+      </Suspense>}
       {view === 'workout' && <Suspense fallback={<RouteSkeleton label="Workout Studio" />}>
         <WorkoutStudio store={workout} state={{ ...workouts, sessions,
           draft: planning.activeWorkout ? planning.activeWorkout.draft : workouts.draft }} massKg={massKg} planner={planning.planner}

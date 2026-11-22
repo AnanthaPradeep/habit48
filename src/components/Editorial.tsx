@@ -36,12 +36,16 @@ export function RouteSkeleton({ label }: { label: string }) {
 export function MediaRail({ label, items }: { label: string; items: { id: string; content: ReactNode }[] }) {
   const track = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
+  function position(node: HTMLDivElement, item: Element) {
+    return Math.max(0, Math.min(node.scrollWidth - node.clientWidth,
+      Math.round(node.scrollLeft + item.getBoundingClientRect().left - node.getBoundingClientRect().left)))
+  }
   function go(index: number) {
     const node = track.current
     const item = node?.children[index]
     if (!node || !item) return
     setActive(index)
-    node.scrollTo({ left: node.scrollLeft + item.getBoundingClientRect().left - node.getBoundingClientRect().left })
+    node.scrollTo({ left: position(node, item), behavior: 'instant' })
   }
   return <section className="panel media-rail" aria-label={label}>
     <div className="section-heading"><h2>{label}</h2><div className="calendar-actions">
@@ -57,9 +61,8 @@ export function MediaRail({ label, items }: { label: string; items: { id: string
       }} onScroll={() => {
         const node = track.current
         if (!node) return
-        const start = node.getBoundingClientRect().left
-        const nearest = [...node.children].map(item => Math.abs(item.getBoundingClientRect().left - start))
-        setActive(nearest.indexOf(Math.min(...nearest)))
+        const distances = [...node.children].map(item => Math.abs(position(node, item) - node.scrollLeft))
+        setActive(distances.indexOf(Math.min(...distances)))
       }}>
       {items.map(item => <article key={item.id} className="media-rail-card">{item.content}</article>)}
     </div>

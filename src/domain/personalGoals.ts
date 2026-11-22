@@ -39,7 +39,7 @@ export const recordedNumber = (value: unknown): number | null =>
 
 export function goalProgress(goal: PersonalGoal, journal: Journal, sessions: WorkoutSession[],
   logs: Iterable<GoalLog>, scheduled: ScheduleFor, day: string,
-  customDates?: (habit: string) => { day: string; amount: number }[]) {
+  customDates?: (habit: string) => { day: string; amount: number }[], activityWalking?: Readonly<Record<string, number>>) {
   const inRange = (date: string) => date >= goal.start && date <= goal.end && date <= day
   const points: { day: string; amount: number }[] = []
   for (const [date, entry] of Object.entries(journal.entries)) {
@@ -49,12 +49,17 @@ export function goalProgress(goal: PersonalGoal, journal: Journal, sessions: Wor
     const sleep = recordedNumber(entry.m[2])
     const weight = recordedNumber(entry.m[3])
     let amount: number | null = null
-    if (goal.kind === 'Walking') amount = walking
+    if (goal.kind === 'Walking') amount = activityWalking?.[date] !== undefined ? Math.max(walking ?? 0, activityWalking[date]) : walking
     if (goal.kind === 'Hydration') amount = goal.threshold > 0 && water !== null ? Number(water >= goal.threshold) : water
     if (goal.kind === 'Sleep' && sleep !== null) amount = Number(sleep >= goal.threshold)
     if (goal.kind === 'Weight' && weight !== null && weight > 0) amount = weight
     if (goal.kind === 'Habit' && scheduled(date).includes(goal.habit)) amount = Number(Boolean(entry.h[goal.habit]))
     if (amount !== null) points.push({ day: date, amount })
+  }
+  if (goal.kind === 'Walking' && activityWalking) {
+    for (const [date, amount] of Object.entries(activityWalking)) {
+      if (inRange(date) && !journal.entries[date]) points.push({ day: date, amount })
+    }
   }
   if (goal.kind === 'Custom habit' && goal.customHabit) {
     points.push(...(customDates?.(goal.customHabit) ?? []).filter(point => inRange(point.day)))
