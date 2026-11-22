@@ -1,4 +1,5 @@
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useState } from 'react'
 import { report, type Filters } from '../domain/analytics'
 import { total } from '../domain/calories'
 import { habits, meals, metrics, type Journal } from '../domain/journal'
@@ -15,8 +16,14 @@ export default function Insights({ journal, filters, change, print, scheduled }:
   change(filters: Filters): void; print(filters: Filters): void
 }) {
   const { values, summary } = report(journal, filters, scheduled)
+  const [chart, setChart] = useState<'Bars' | 'Line'>('Bars')
+  const Chart = chart === 'Bars' ? BarChart : LineChart
+  const metric = metricOptions.find(option => option.value === filters.metric)?.label
   return <section className="panel insights-panel">
-    <div className="section-heading"><h2>Progress over time</h2></div>
+    <div className="section-heading"><h2>Progress over time</h2><div className="progress-actions chart-mode" role="group" aria-label="Chart style">
+      <button type="button" className="quiet-button" aria-pressed={chart === 'Bars'} onClick={() => setChart('Bars')}>Bars</button>
+      <button type="button" className="quiet-button" aria-pressed={chart === 'Line'} onClick={() => setChart('Line')}>Line</button>
+    </div></div>
     <div className="report-filters">
       <label>Report period<select value={filters.period} onChange={event => change({ ...filters, period: event.target.value as Filters['period'] })}>
         <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
@@ -31,14 +38,15 @@ export default function Insights({ journal, filters, change, print, scheduled }:
     <div className="chart">
       {values.length ? <>
         {values.some(item => item.value !== null) && <ResponsiveContainer width="100%" height={260} minWidth={0} initialDimension={{ width: 320, height: 260 }}>
-          <BarChart data={values} margin={{ top: 10, right: 8, bottom: 0, left: 4 }}>
+          <Chart data={values} margin={{ top: 10, right: 8, bottom: 0, left: 4 }}>
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis dataKey="key" tick={{ fill: 'var(--muted)', fontSize: 10 }} minTickGap={18} />
             <YAxis width={34} domain={filters.metric === 'habit' ? [0, 100] : [0, 'auto']} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
             <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--ink)' }}
               itemStyle={{ color: 'var(--ink)' }} />
-            <Bar dataKey="value" name={metricOptions.find(option => option.value === filters.metric)?.label} fill="var(--accent)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-          </BarChart>
+            {chart === 'Bars' ? <Bar dataKey="value" name={metric} fill="var(--accent)" radius={[6, 6, 0, 0]} isAnimationActive={false} /> :
+              <Line dataKey="value" name={metric} stroke="var(--accent)" strokeWidth={2} connectNulls={false} isAnimationActive={false} />}
+          </Chart>
         </ResponsiveContainer>}
         <details><summary>View chart data</summary><ValueList values={values} /></details>
       </> : <p className="empty-state">No entries in this date range.</p>}

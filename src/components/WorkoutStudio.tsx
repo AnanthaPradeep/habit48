@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type CSSProperties, type FormEvent } from 'react'
 import { Activity, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Dumbbell, Flame, HeartPulse, Plus, Search, Timer, X } from 'lucide-react'
-import { Pagination } from './Controls'
+import { Modal, Pagination } from './Controls'
+import { EditorialHero, EditorialImage, MediaRail } from './Editorial'
 import { exerciseById, exercises, groups, type Exercise } from '../domain/exercises'
 import { today, shift } from '../domain/journal'
 import { body, cooldown, full, lower, upper, warmup, week, completeSet, elapsed, finishWorkout, rest, sequence,
@@ -58,6 +59,8 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
   const [history, setHistory] = useState<'week' | 'month' | 'all'>('week')
   const [libraryPage, setLibraryPage] = useState(0)
   const [historyPage, setHistoryPage] = useState(0)
+  const [immersive, expand] = useState(false)
+  const [finished, setFinished] = useState<WorkoutSession | null>(null)
   const weekTrack = useRef<HTMLDivElement>(null)
   const current = week[selected]
   const plans = [...new Map([...presetPlans, ...week.flatMap(day => day.plan ?? []), ...state.plans].map(plan => [plan.id, plan])).values()]
@@ -75,6 +78,13 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
     .sort((a,b) => b.finishedAt.localeCompare(a.finishedAt))
   const libraryIndex = Math.min(libraryPage, Math.max(0, Math.ceil(matches.length / 12) - 1))
   const historyIndex = Math.min(historyPage, Math.max(0, Math.ceil(visibleSessions.length / 8) - 1))
+  const recentExercises = [...new Set([...state.sessions].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt))
+    .flatMap(session => session.sets.map(set => set.exerciseId)))].slice(0, 5)
+  function saveGuided(draft: WorkoutDraft | null, session?: WorkoutSession) {
+    const saved = saveDraft(draft, session)
+    if (saved && session) { expand(false); setFinished(session) }
+    return saved
+  }
   function filterCategory(value: string) {
     setCategory(value)
     setLibraryPage(0)
@@ -94,20 +104,26 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
     if (saveDraft({ id: crypto.randomUUID(), day: today(), plan, sets: [], elapsed: 0,
       runningSince: Date.now(), restUntil: null, pausedRest: 0 })) {
       setPreview(null)
+      expand(true)
       requestAnimationFrame(() => document.getElementById('guided-workout')?.scrollIntoView({ behavior: 'instant' }))
     }
   }
   return <div className="studio">
-    <section className="studio-hero">
+    <EditorialHero asset="training" className="studio-feature">
       <div><p className="eyebrow">MY ROUTINE / TRAINING</p><h2>Move with purpose.</h2><p>Build strength. Stay consistent.</p>
         <p className="eyebrow studio-today">{selected === dayIndex() ? 'TODAY’S WORKOUT' : 'WEEKLY WORKOUT'}</p>
         <h3>{heroName}</h3>
         <p>{todayState ?? (heroPlan ? `${current.detail} · ${heroPlan.steps.length} exercises · Beginner-friendly` : 'Take a break and recover.')}</p>
         {heroPlan && (!todayState || todayState === 'Planned') && <button onClick={() => setPreview(heroPlan)}>View workout <ArrowRight size={16} /></button>}</div>
-      <ExerciseDemo exercise={exerciseById.get('goblet')!} thumbnail />
-    </section>
+    </EditorialHero>
     <p className="studio-safety"><HeartPulse size={18} />Get medical clearance before strength training if you have a history of CVST. Start gently once cleared, breathe continuously, and avoid straining.</p>
-    {state.draft && <Guided key={state.draft.id} draft={state.draft} saveDraft={saveDraft} massKg={massKg} sessions={state.sessions} />}
+    {state.draft && (immersive ? <Modal title="Workout player" className="player-shell" close={() => expand(false)}>
+      <Guided key={state.draft.id} draft={state.draft} saveDraft={saveGuided} massKg={massKg} sessions={state.sessions} />
+    </Modal> : <Guided key={state.draft.id} draft={state.draft} saveDraft={saveGuided} massKg={massKg} sessions={state.sessions} expand={() => expand(true)} />)}
+    {finished && <section className="panel" aria-label="Workout completion summary">
+      <div className="section-heading"><h2>Workout logged</h2><button type="button" className="icon-button" aria-label="Dismiss workout summary" onClick={() => setFinished(null)}><X /></button></div>
+      <p>{finished.name} · {finished.sets.length} sets · {Math.max(1, Math.round(finished.seconds / 60))} min · {sessionStatus(finished)}</p>
+    </section>}
     {preview && <section className="panel studio-preview" aria-label="Workout preview">
       <div className="section-heading"><h2>{preview.name}</h2><button type="button" className="icon-button" aria-label="Close workout preview" onClick={() => setPreview(null)}><X /></button></div>
       <p>{preview.minutes} min planned · {sequence(preview).length} sets</p>
@@ -118,7 +134,7 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       <button type="button" onClick={() => start(preview)}>Start workout</button>
     </section>}
     <WeeklyPlanner slots={planner} plans={plans} sessions={state.sessions}
-      append={append} start={plan => { setPreview(plan); document.querySelector('.studio-hero')?.scrollIntoView({ block: 'start' }) }}
+      append={append} start={plan => { setPreview(plan); requestAnimationFrame(() => document.querySelector('.studio-preview')?.scrollIntoView({ block: 'center' })) }}
       status={planningStatus} />
     <section className="panel studio-week">
       <div className="section-heading"><h2><CalendarDays aria-hidden="true" /> Suggested week</h2><div className="calendar-actions">
@@ -141,16 +157,29 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       <button aria-pressed={category === 'Bodyweight'} onClick={() => filterCategory(category === 'Bodyweight' ? 'All' : 'Bodyweight')}><Activity /><strong>Bodyweight</strong><span>No gym equipment</span></button>
       <button aria-pressed={category === 'Dumbbell'} onClick={() => filterCategory(category === 'Dumbbell' ? 'All' : 'Dumbbell')}><Dumbbell /><strong>Dumbbell</strong><span>Up to 2 × 5 kg</span></button>
     </section>
+    <MediaRail label="Recommended workouts" items={[full, upper, lower, warmup, cooldown].map(plan => ({
+      id:plan.id, content:<>{plan.id === cooldown.id ? <EditorialImage asset="mobility" decorative /> :
+        <ExerciseDemo exercise={exerciseById.get(plan.steps[0].exerciseId)!} thumbnail />}<h3>{plan.name}</h3>
+        <p>{plan.minutes} min · {plan.steps.length} exercises</p><button className="quiet-button" type="button" onClick={() => {
+          setPreview(plan); requestAnimationFrame(() => document.querySelector('.studio-preview')?.scrollIntoView({ block:'center' }))
+        }}>Preview {plan.name}</button></>
+    }))} />
     <section className="panel">
       <div className="section-heading"><h2>Workout plans</h2><button type="button" onClick={() => setBuilding(value => !value)}><Plus size={16} /> Custom workout</button></div>
       {building && <Builder save={plan => { if (store.savePlan(plan)) setBuilding(false) }} />}
       <div className="studio-plan-grid">{availablePlans.map(plan => <button key={plan.id} className="quiet-button"
-        onClick={() => { setPreview(plan); document.querySelector('.studio-hero')?.scrollIntoView({ block: 'start' }) }}>
+        onClick={() => { setPreview(plan); requestAnimationFrame(() => document.querySelector('.studio-preview')?.scrollIntoView({ block: 'center' })) }}>
         <span>{plan.name}<small>{plan.minutes} min · {plan.steps.length} exercises</small></span><ArrowRight size={16} />
       </button>)}</div>
     </section>
     <section className="panel">
       <h2>Exercise library</h2>
+      {!!recentExercises.length && <div className="recent-exercises"><h3>Recently completed exercises</h3><div className="progress-actions">
+        {recentExercises.map(id => {
+          const exercise = exerciseById.get(id)
+          return exercise ? <button type="button" className="quiet-button" key={id} onClick={() => setDetail(exercise)}>{exercise.name}</button> : null
+        })}
+      </div></div>}
       <div className="studio-filters">
         <label><Search size={16} /> Search exercises<input type="search" value={query} onChange={event => { setQuery(event.target.value); setLibraryPage(0); setDetail(null) }} /></label>
         <label>Equipment<select value={category} onChange={event => filterCategory(event.target.value)}>
@@ -205,8 +234,10 @@ function WorkoutTrend({ sessions }: { sessions: WorkoutSession[] }) {
   </figure>
 }
 
-function Guided({ draft, saveDraft, massKg, sessions }: { draft: WorkoutDraft; saveDraft: SaveDraft; massKg: number; sessions: WorkoutSession[] }) {
+function Guided({ draft, saveDraft, massKg, sessions, expand }: { draft: WorkoutDraft; saveDraft: SaveDraft; massKg: number; sessions: WorkoutSession[]; expand?(): void }) {
   const [now, setNow] = useState(Date.now)
+  const [previewStep, setPreviewStep] = useState<number | null>(null)
+  const swipeStart = useRef<number | null>(null)
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250)
     return () => clearInterval(timer)
@@ -215,29 +246,51 @@ function Guided({ draft, saveDraft, massKg, sessions }: { draft: WorkoutDraft; s
   const position = draft.sets.length
   const current = order[position]
   const exercise = current ? exerciseById.get(current.exerciseId) : undefined
+  const stepIndex = draft.plan.steps.findIndex((_, index) => draft.plan.steps.slice(0, index + 1).reduce((sum, step) => sum + step.sets, 0) > position)
+  const previewIndex = previewStep ?? Math.max(0, stepIndex)
+  const previewExercise = exerciseById.get(draft.plan.steps[previewIndex]?.exerciseId)
   const previous = exercise ? (['bodyweight','dumbbell'] as const).flatMap(equipment => {
     const last = exerciseHistory(sessions, exercise.id, equipment)[0]
     return last ? [last] : []
   }).sort((a,b) => b.session.finishedAt.localeCompare(a.session.finishedAt))[0] : undefined
   const remaining = rest(draft, now)
+  const restDuration = (order[position - 1]?.rest ?? 0) * 1000
   const paused = draft.runningSince === null
   function finish() {
     const session = finishWorkout(draft, Date.now(), massKg)
     if (session) saveDraft(null, session)
   }
   return <section className="panel studio-guided" id="guided-workout" aria-label="Guided workout">
-    <div className="section-heading"><div><h2>{draft.plan.name}</h2><p>{position}/{order.length} sets · {secondsLabel(elapsed(draft, now))} elapsed</p></div>
+    <div className="section-heading"><div><h2>{draft.plan.name}</h2><p>{position}/{order.length} sets · {secondsLabel(elapsed(draft, now))} elapsed</p>
+      {stepIndex >= 0 && <small>Exercise {stepIndex + 1} of {draft.plan.steps.length}</small>}</div>
+      {expand && <button className="quiet-button" type="button" onClick={expand}>Open workout player</button>}
       <button className="quiet-button" type="button" onClick={() => saveDraft(togglePause(draft, Date.now()))}>{paused ? 'Resume' : 'Pause'}</button></div>
     <progress value={position} max={order.length} aria-label="Workout progress" />
-    {remaining > 0 && <div className="studio-rest"><Timer /><strong>Rest · {secondsLabel(remaining)}</strong>
+    {remaining > 0 && <div className="studio-rest"><Timer /><strong className="player-rest-ring"
+      style={{ '--rest-fill': Math.min(100, remaining / Math.max(restDuration, 1) * 100) + '%' } as CSSProperties}>Rest · {secondsLabel(remaining)}</strong>
       <button className="quiet-button" type="button" onClick={() => saveDraft({ ...draft, restUntil: null, pausedRest: 0 })}>Skip rest</button></div>}
-    {exercise && <><ExerciseGuide exercise={exercise} />
+    {exercise && <>
+      {!expand && <div className="player-preview-strip" onTouchStart={event => { swipeStart.current = event.touches[0]?.clientX ?? null }}
+        onTouchEnd={event => {
+          const finish = event.changedTouches[0]?.clientX
+          if (swipeStart.current !== null && finish !== undefined && Math.abs(finish - swipeStart.current) > 40) {
+            setPreviewStep(Math.max(0, Math.min(draft.plan.steps.length - 1, previewIndex + (finish < swipeStart.current ? 1 : -1))))
+          }
+          swipeStart.current = null
+        }}>
+        <button type="button" className="icon-button" disabled={previewIndex === 0} aria-label="Preview previous exercise" onClick={() => setPreviewStep(previewIndex - 1)}><ChevronLeft /></button>
+        <div className="player-preview-caption"><strong>{previewExercise?.name}</strong><small>{previewIndex === stepIndex ? 'Current exercise' : 'Preview only'}</small></div>
+        <button type="button" className="icon-button" disabled={previewIndex >= draft.plan.steps.length - 1} aria-label="Preview next exercise" onClick={() => setPreviewStep(previewIndex + 1)}><ChevronRight /></button>
+        {previewStep !== null && <button className="quiet-button" type="button" onClick={() => setPreviewStep(null)}>Back to current</button>}
+      </div>}
+      <ExerciseGuide exercise={previewExercise ?? exercise} />
       {previous && <p className="muted">Last time · {previous.session.day} · {previous.sets.map(set =>
         set.reps + (exercise.timed ? ' sec' : ' reps') + (set.kg ? ' at ' + set.kg + ' kg total' : ' unloaded')).join(' · ')}</p>}
       <SetControls key={position} current={current} exercise={exercise}
       disabled={paused || remaining > 0} save={(reps, kg) => {
         const next = completeSet(draft, reps, kg, Date.now())
         if (next !== draft) {
+          setPreviewStep(null)
           setNow(Date.now())
           saveDraft(next)
         }

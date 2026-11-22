@@ -10,6 +10,7 @@ import type { Reflection, Versioned } from '../domain/routineEvents'
 import { ExerciseProgress } from './ExerciseProgress'
 import { download, monthlyWorkbook } from '../services/exports'
 import type { GoalData } from './MyGoals'
+import { EditorialHero } from './Editorial'
 
 const display = (value: number | null, unit = '') => value === null ? '—' : numberLabel.format(value) + unit
 export default function MonthlyReview({ reflections, customCounts, ...data }: GoalData & {
@@ -47,8 +48,8 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
     ['Reflection', reflection?.notes ?? ''], ['Next month’s focus', reflection?.focus ?? ''],
   ]
   return <section className="panel progress-module" aria-label="Monthly Review">
-    <div className="progress-banner"><p>{title}</p><h2>A month of progress.</h2>
-      <p>{current.end > day ? 'Comparison uses the first ' + comparable.elapsedDays + ' days of each month.' : 'Compared with the previous calendar month.'}</p></div>
+    <EditorialHero asset="sleep"><p>{title}</p><h2>A month of progress.</h2>
+      <p>{current.end > day ? 'Comparison uses the first ' + comparable.elapsedDays + ' days of each month.' : 'Compared with the previous calendar month.'}</p></EditorialHero>
     <div className="progress-actions">
       <button aria-label="Previous month" onClick={() => setMonth(monthShift(month, -1))}><ChevronLeft size={18} /></button>
       <label>Review month <input type="month" max={day.slice(0, 7)} value={month.slice(0, 7)} onChange={event => {

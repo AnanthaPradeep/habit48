@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 const files = [
   'index.html', 'manifest.webmanifest', 'brand/logo.svg',
   ...readdirSync('dist/icons').sort().map(name => 'icons/' + name),
+  ...readdirSync('dist/editorial').filter(name => name.endsWith('.webp')).sort().map(name => 'editorial/' + name),
   ...readdirSync('dist/assets').sort().map(name => 'assets/' + name),
 ]
 const template = readFileSync('scripts/worker-template.js', 'utf8')

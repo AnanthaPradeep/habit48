@@ -97,7 +97,8 @@ export default function MyGoals(data: GoalData) {
     </form>}
     <div className="progress-grid">{(history ? sorted : active).map(goal => {
       const progress = goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled, day, data.customDates)
-      return <article className="progress-tile" key={goal.id}>
+      return <article className={'progress-tile' + (progress.achieved ? ' goal-achieved' : '')} key={goal.id}>
+        <span className="goal-emblem"><Target size={18} aria-hidden="true" /></span>
         <small>{goal.frequency} · {goal.state}</small><h3>{goal.title}</h3>
         <p>{progress.recorded ? numberLabel.format(progress.value ?? 0) : '—'} / {goal.target} {goalUnits(goal)} <strong>{progress.percentage}%</strong></p>
         <progress aria-label={goal.title + ' progress'} max={100} value={progress.percentage} />

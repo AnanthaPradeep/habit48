@@ -2,23 +2,34 @@ import { useState, type FormEvent } from 'react'
 import { total } from '../domain/calories'
 import { catalog } from '../domain/foods'
 import { meals, metrics, numberLabel, type Entry, type Food } from '../domain/journal'
+import { EditorialImage, type Asset } from './Editorial'
+import type { recentMeals } from '../domain/quickLog'
 
 interface Props {
   entry: Entry
+  recent: ReturnType<typeof recentMeals>
   warnings: string[]
   changeMeal(index: number, value: string): void
   changeEntry(entry: Entry): void
   recalculate(): void
 }
-export function DailyJournal({ entry, warnings, changeMeal, changeEntry, recalculate }: Props) {
+const mealMedia: Partial<Record<typeof meals[number], Asset>> = { Breakfast:'breakfast', Lunch:'lunch', Snacks:'snack', Dinner:'dinner' }
+export function DailyJournal({ entry, recent, warnings, changeMeal, changeEntry, recalculate }: Props) {
   const items = entry.cal ?? []
   const calories = total(items)
   return <div className="journal-grid">
     <section className="panel meal-panel">
       <h2>Food journal</h2><p>Include portions, for example, 4 idiyappam + 1 egg curry.</p>
-      <div id="food">{meals.map((meal, index) => <label className="meal-field" key={meal}><span>{meal}</span>
-        <textarea rows={2} value={entry.f[index] ?? ''} onChange={event => changeMeal(index, event.target.value)} />
-      </label>)}</div>
+      <p className="meal-disclosure">Meal category photographs are illustrative.</p>
+      <div id="food">{meals.map((meal, index) => <div className={mealMedia[meal] ? 'meal-card' : undefined} key={meal}>
+        {mealMedia[meal] && <EditorialImage asset={mealMedia[meal]} decorative />}
+        <label className="meal-field"><span>{meal}</span>
+          <textarea rows={2} value={entry.f[index] ?? ''} onChange={event => changeMeal(index, event.target.value)} />
+        </label></div>)}</div>
+      {recent.length > 0 && <details className="journal-recent"><summary>Recently logged meals</summary>
+        <div className="progress-actions">{recent.map(({ index, text }) => <button key={index + text} type="button" className="quiet-button" onClick={() => {
+          changeMeal(index, [entry.f[index], text].filter(Boolean).join(' + '))
+        }}>{text} · {meals[index]}</button>)}</div></details>}
     </section>
     <section className="panel calories-panel">
       <h2>Calories by meal</h2>
@@ -38,7 +49,7 @@ export function DailyJournal({ entry, warnings, changeMeal, changeEntry, recalcu
       </details>
     </section>
     <section className="panel recovery">
-      <h2>Activity &amp; recovery</h2>
+      <div className="section-heading recovery-heading"><h2>Activity &amp; recovery</h2><EditorialImage asset="hydration" decorative /></div>
       <div id="metrics">{metrics.map((metric, index) => <label key={metric}>{metric}
         <input type="number" min="0" step="any" value={entry.m[index] ?? ''}
           onChange={event => changeEntry({ ...entry, m: entry.m.map((value, i) => i === index ? event.target.value : value) })} />

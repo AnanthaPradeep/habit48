@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Check, BookOpen, Droplet, Footprints, Leaf, Star } from 'lucide-react'
-import { customHabitsFor, customStreak, type CustomHabit, type HabitLog } from '../domain/customHabits'
+import { customHabitAt, customHabitsFor, customStreak, type CustomHabit, type HabitLog } from '../domain/customHabits'
 import { shift, today } from '../domain/journal'
 import { weekdayIndex } from '../domain/schedule'
 import type { EventChange, Versioned } from '../domain/routineEvents'
 import { Modal } from './Controls'
+import { HabitHistory } from './HabitDetail'
 
 const icons = { Check, BookOpen, Droplet, Footprints, Leaf, Star }
 const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -16,6 +17,7 @@ type Props = {
 }
 export function CustomHabits({ history, logs, isRest, append, manage, day }: Props) {
   const [draft, edit] = useState<CustomHabit | null>(null)
+  const [detail, setDetail] = useState<CustomHabit | null>(null)
   const definitions = customHabitsFor(history, day)
   const visible = manage ? definitions : definitions.filter(habit => !isRest(day) && habit.days.includes(weekdayIndex(day)))
   if (!manage && !visible.length) return null
@@ -73,6 +75,7 @@ export function CustomHabits({ history, logs, isRest, append, manage, day }: Pro
       return <article className="progress-tile" key={habit.id}>
         <small>{habit.category}</small><h3><Icon size={17} /> {habit.title}</h3>
         {habit.description && <p>{habit.description}</p>}<p>{streak} scheduled days in a row</p>
+        <button type="button" className="quiet-button" onClick={() => setDetail(habit)}>{habit.title} history</button>
         {manage ? <div className="progress-actions">
           {next && <small>{next.archived ? 'Archives tomorrow' : 'Edits take effect tomorrow'}</small>}
           <button className="quiet-button" onClick={() => edit(version(next ?? habit))}>Edit</button>
@@ -88,5 +91,14 @@ export function CustomHabits({ history, logs, isRest, append, manage, day }: Pro
       </article>
     })}</div>}
     {manage && !visible.length && <p>Your existing habits are listed under Flexible Routine. Create a custom habit to track something new.</p>}
+    {detail && <HabitHistory name={detail.title} day={day} close={() => setDetail(null)}
+      amount={detail.unit !== 'Check' ? date => logs.get(detail.id + ':' + date)?.value : undefined}
+      state={date => {
+        if (date > today()) return 'Future'
+        const version = customHabitAt(history, detail.id, date)
+        if (!version || version.archived || isRest(date) || !version.days.includes(weekdayIndex(date))) return 'Rest'
+        const value = logs.get(detail.id + ':' + date)?.value
+        return value === undefined ? 'Not logged' : value >= version.target ? 'Completed' : value > 0 ? 'Partial' : 'Missed'
+      }} />}
   </section>
 }

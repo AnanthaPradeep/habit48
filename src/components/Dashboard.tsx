@@ -1,7 +1,10 @@
 import { CalendarDays, ChartNoAxesColumn, ChevronLeft, ChevronRight, LayoutGrid, BookOpen, SlidersHorizontal, Moon, Sun,
   Check, Flame, Footprints, Leaf, Droplet, Soup, Dumbbell } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { EditorialHero } from './Editorial'
+import { HabitDetail, habitRecord } from './HabitDetail'
+import type { ScheduleFor } from '../domain/review'
 import { labelDate, shift, monday, today, habits, numberLabel, type Entry, type Journal } from '../domain/journal'
 import { total } from '../domain/calories'
 import { logo } from './Branding'
@@ -98,9 +101,12 @@ export function Calendar({ day, journal, move }: { day: string; journal: Journal
 }
 
 const habitIcons = [Leaf, Droplet, Flame, Soup, Soup, Footprints, Droplet, Moon, Soup]
-export function Today({ entry, day, start, due, streak, onToggle }: {
+export function Today({ entry, day, start, due, streak, onToggle, journal, scheduled, workout, workoutCount, upcoming, quick }: {
   entry: Entry; day: string; start: string; due: readonly number[]; streak: number; onToggle(index: number): void
+  journal: Journal; scheduled: ScheduleFor; workout: string; workoutCount: number; upcoming: { day: string; title: string }[]
+  quick: ReactNode
 }) {
+  const [detail, setDetail] = useState<number | null>(null)
   const count = due.filter(index => entry.h[index]).length
   const percent = due.length ? Math.round(count / due.length * 100) : 0
   const dayNumber = Math.round((Date.parse(day) - Date.parse(start)) / 86400000) + 1
@@ -110,8 +116,14 @@ export function Today({ entry, day, start, due, streak, onToggle }: {
     { Icon: Flame, label: 'Calories', value: calories === null ? null : Math.round(calories), unit: 'kcal' },
     { Icon: Footprints, label: 'Walking', value: entry.m[1], unit: 'min' },
     { Icon: Moon, label: 'Sleep', value: entry.m[2], unit: 'hrs' },
+    { Icon: Droplet, label: 'Water', value: entry.m[0], unit: 'L' },
+    { Icon: Dumbbell, label: 'Workouts', value: workoutCount, unit: workoutCount === 1 ? 'session' : 'sessions' },
   ]
-  return <>
+  const hour = new Date().getHours()
+  return <div className="daily-editorial">
+    <EditorialHero asset="morning"><p className="eyebrow">{labelDate(day, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+      <h2>{day !== today() ? 'A day in your routine.' : hour < 12 ? 'Good morning.' : hour < 17 ? 'Good afternoon.' : 'Good evening.'}</h2>
+      <p>{due.length ? count + ' of ' + due.length + ' habits complete' : 'A day for rest and recovery'}</p></EditorialHero>
     <div className="bento">
       <section className="momentum" aria-labelledby="momentumTitle">
         <div><h2 className="eyebrow" id="momentumTitle">Habit progress</h2>
@@ -128,15 +140,26 @@ export function Today({ entry, day, start, due, streak, onToggle }: {
         <Icon aria-hidden="true" /><p>{label}</p><strong>{value == null || value === '' ? '—' : numberLabel.format(Number(value))}</strong> <small>{unit}</small>
       </article>)}</div>
     </div>
+    <aside className="today-side" aria-label="Actions and planned training">
+      {quick}
+      <section className="panel today-timeline"><h2>Workout plan</h2><p>{workout}</p><a href="#workout">Open Workout Studio</a>
+        <h3>Coming up</h3>{upcoming.length ? <ol>{upcoming.map(item => <li key={item.day}>
+          <time dateTime={item.day}>{labelDate(item.day, { weekday: 'short', day: 'numeric' })}</time><strong>{item.title}</strong>
+        </li>)}</ol> : <p>No plans in the next seven days.</p>}</section>
+    </aside>
     <section className="panel habit-panel">
       <div className="section-heading"><div><h2>Daily habits</h2><p>{day}{dayNumber > 0 ? ' · Day ' + dayNumber : ''}</p></div>
         <span className="pill">{due.length ? count + '/' + due.length + ' done' : 'Rest day'}</span></div>
       <div id="habits">{due.map(index => {
         const habit = habits[index]
         const Icon = habitIcons[index]
-        return <label className="habit" key={habit}><span className="habit-icon"><Icon aria-hidden="true" /></span>
-          <span>{habit}</span><input type="checkbox" checked={Boolean(entry.h[index])} onChange={() => onToggle(index)} /></label>
+        const record = habitRecord(journal, scheduled, index, day)
+        return <div className="habit-card" key={habit}><label className="habit"><span className="habit-icon"><Icon aria-hidden="true" /></span>
+          <span className="habit-copy">{habit}<small aria-hidden="true">{record.current} day streak · {record.longest} best · {record.weekly}/{record.weekDue} this week</small></span>
+          <input aria-label={habit} type="checkbox" checked={Boolean(entry.h[index])} onChange={() => onToggle(index)} /></label>
+          <button type="button" className="icon-button" aria-label={habit + ' history'} onClick={() => setDetail(index)}><CalendarDays aria-hidden="true" /></button></div>
       })}</div>
     </section>
-  </>
+    {detail !== null && <HabitDetail name={habits[detail]} id={detail} day={day} journal={journal} scheduled={scheduled} close={() => setDetail(null)} />}
+  </div>
 }

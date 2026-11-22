@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
-export function Modal({ title, close, children }: { title: string; close(): void; children: ReactNode }) {
+export function Modal({ title, close, children, className = '' }: { title: string; close(): void; children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dialog = ref.current
@@ -12,7 +12,7 @@ export function Modal({ title, close, children }: { title: string; close(): void
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true })
     }
   }, [])
-  return <dialog ref={ref} className="routine-dialog" aria-label={title} onCancel={event => {
+  return <dialog ref={ref} className={'routine-dialog ' + className} aria-label={title} onCancel={event => {
     event.preventDefault()
     close()
   }}>

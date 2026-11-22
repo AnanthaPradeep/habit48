@@ -19,6 +19,22 @@ test('removes ChatGPT attribution while keeping the workout link and other param
   await expect(page).toHaveURL(/\/habit48\/\?ref=shortcut#workout$/)
 })
 
+test('shows the editorial media and opens historical habit details', async ({ page, context }) => {
+  await journalBackend().attach(context)
+  await login(page)
+  const photo = page.locator('.daily-editorial .editorial-hero img')
+  await expect.poll(() => photo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
+  await page.getByRole('button', { name: 'Avoid added sugar history' }).click()
+  const detail = page.getByRole('dialog', { name: 'Avoid added sugar' })
+  await expect(detail.getByRole('img', { name: /yearly consistency/ })).toBeVisible()
+  await detail.getByRole('button', { name: 'Month', exact: true }).click()
+  await expect(detail.getByRole('button', { name: 'Previous month' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(detail).toHaveCount(0)
+  const rail = page.getByRole('region', { name: 'Explore your routine' })
+  await expect(rail.getByRole('link', { name: 'Explore workouts' })).toHaveAttribute('href', '#workout')
+})
+
 test('personal goals update from quick logs and monthly reflections survive reload', async ({ page, context }) => {
   await journalBackend().attach(context)
   await login(page)

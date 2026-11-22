@@ -15,6 +15,7 @@ import { workoutTotals } from './domain/workout'
 import { RoutineEventStore } from './services/routineEvents'
 import { projectEvents } from './domain/routineEvents'
 import { QuickLog } from './components/QuickLog'
+import { EditorialHero, EditorialImage, MediaRail, RouteSkeleton } from './components/Editorial'
 import { projectQuick, recentMeals } from './domain/quickLog'
 import { effectiveSchedule, scheduleFor, habitStreak, weekdayIndex } from './domain/schedule'
 import { CustomHabits } from './components/CustomHabits'
@@ -176,6 +177,15 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
   }
 
   const dated = view === 'today' || view === 'journal'
+  const plan = planning.planner.get(day)
+  const workoutLabel = plan?.movedTo ? 'Moved to ' + plan.movedTo : plan?.mode === 'recovery' ? 'Recovery day' :
+    plan?.mode === 'rest' ? 'Planned rest day' : plan?.name ?? 'No workout assigned'
+  const upcoming = view === 'today' ? [...planning.planner.values()]
+    .filter(item => item.day > day && item.day <= shift(day, 7) && !item.movedTo)
+    .sort((a, b) => a.day.localeCompare(b.day)).map(item => ({
+      day: item.day, title: item.name ?? (item.mode === 'recovery' ? 'Recovery day' : 'Rest day'),
+    })) : []
+  const recent = recentMeals(journal, day)
   return <main id="privateApp" data-view={view}>
     <Sidebar view={view} logged={Object.keys(journal.entries).length} />
     <div className="workspace">
@@ -187,20 +197,26 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
       </nav>}
       {dated && <Calendar day={day} journal={journal} move={move} />}
       {view === 'today' && <Today entry={entry} day={day} start={journal.start} due={due}
+        journal={journal} scheduled={scheduled} workout={workoutLabel} workoutCount={dailyWorkouts.count} upcoming={upcoming}
+        quick={day === today() && <QuickLog entry={saved ?? blankEntry()} due={due} recent={recent}
+          submit={input => cloud.quickLog(day, input)} undo={cloud.undoQuick} canUndo={state.lastQuick?.day === day} />}
         streak={habitStreak(journal, today(), scheduled)} onToggle={index =>
         changeEntry({ ...entry, h: entry.h.map((done, i) => index === i ? !done : done) })} />}
-      {view === 'today' && day === today() && <QuickLog entry={saved ?? blankEntry()} due={due} recent={recentMeals(journal, day)}
-        submit={input => cloud.quickLog(day, input)} undo={cloud.undoQuick} canUndo={state.lastQuick?.day === day} />}
-      {view === 'today' && <Suspense fallback={<p role="status">Loading My Goals…</p>}><MyGoals {...goalData} /></Suspense>}
+      {view === 'today' && <Suspense fallback={<RouteSkeleton label="My Goals" />}><MyGoals {...goalData} /></Suspense>}
       {view === 'today' && day <= today() && <CustomHabits {...customData} day={day} />}
+      {view === 'today' && <MediaRail label="Explore your routine" items={[
+        { id: 'train', content: <><EditorialImage asset="training" decorative /><h3>Home training</h3><a href="#workout">Explore workouts</a></> },
+        { id: 'meals', content: <><EditorialImage asset="lunch" decorative /><h3>Log your meals</h3><a href="#journal">Open journal</a></> },
+        { id: 'review', content: <><EditorialImage asset="walking" decorative /><h3>Review your progress</h3><a href="#review">Open Weekly Review</a></> },
+      ]} />}
       <SmartReminders owner={owner} settings={view === 'settings'}
         workoutDays={[...planning.planner.values()].filter(plan => plan.mode === 'workout' && !plan.movedTo).map(plan => plan.day)}
         deadlines={goalData.goals.filter(goal => goal.state === 'Active').map(goal => goal.end)} />
-      {view === 'monthly' && <Suspense fallback={<p role="status">Loading Monthly Review…</p>}>
+      {view === 'monthly' && <Suspense fallback={<RouteSkeleton label="Monthly Review" />}>
         <MonthlyReview {...goalData} reflections={planning.reflections} />
       </Suspense>}
       <div hidden={view !== 'journal'}>
-        <DailyJournal entry={entry} warnings={warnings ?? inferred?.warnings ?? []} changeEntry={changeEntry}
+        <DailyJournal entry={entry} recent={recent} warnings={warnings ?? inferred?.warnings ?? []} changeEntry={changeEntry}
           changeMeal={(index, value) => recalculate(entry.f.map((text, i) => i === index ? value : text))}
           recalculate={() => recalculate(entry.f)} />
         {dailyWorkouts.count > 0 && <section className="panel workout-summary" aria-label="Workout Studio summary">
@@ -208,14 +224,16 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
           <a href="#workout">Open workout history</a>
         </section>}
       </div>
-      {view === 'workout' && <Suspense fallback={<p role="status">Loading Workout Studio…</p>}>
+      {view === 'workout' && <Suspense fallback={<RouteSkeleton label="Workout Studio" />}>
         <WorkoutStudio store={workout} state={{ ...workouts, sessions,
           draft: planning.activeWorkout ? planning.activeWorkout.draft : workouts.draft }} massKg={massKg} planner={planning.planner}
           saveDraft={(draft, session) => routine.append({ kind: 'active_workout',
             payload: { draft, session, expected: planning.activeWorkout?.revision ?? null } })}
           append={routine.append} planningStatus={planningStatus} />
       </Suspense>}
-      {view === 'review' && <Suspense fallback={<p role="status">Loading Weekly Review…</p>}>
+      {view === 'review' && <Suspense fallback={<RouteSkeleton label="Weekly Review" />}>
+        <div className="review-photo"><EditorialHero asset="walking"><h2>Your week in review.</h2>
+          <p>Habits, meals and movement from your journal.</p></EditorialHero></div>
         <WeeklyReview journal={journal} sessions={sessions} goals={[...planning.goals.values()]}
         append={routine.append} status={planningStatus} scheduled={scheduled}
         planCounts={week => plannerCounts(planning.planner, sessions, week, today())} />
