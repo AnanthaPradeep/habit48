@@ -19,6 +19,10 @@ test('keeps Opal text, interactive controls and chart marks legible', async ({ p
   for (const theme of ['light', 'dark']) {
     await page.emulateMedia({ colorScheme: theme as 'light' | 'dark' })
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+    const icon = theme === 'light' ? 'violet' : 'rose'
+    await expect(page.locator('.login-brand img')).toHaveAttribute(
+      'src', `/habit48/brand/icons/icon-512-mr-${icon}-v1.png`,
+    )
     const failures = await page.evaluate(() => {
       const css = getComputedStyle(document.documentElement)
       function luminance(token: string) {
