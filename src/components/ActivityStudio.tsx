@@ -189,7 +189,7 @@ export default function ActivityStudio({ owner, view, day, massKg, token, onWalk
       </nav>
       {tab === 'Overview' && <>
         <div className="activity-bento">{[['Activities this week', String(currentWeek.length)], ['Weekly distance', km(weekly.distance) + ' km'],
-          ['Active duration', time(weekly.duration)], ['Activity streak', streak + ' days']].map(([label, value], index) => <button className="panel activity-metric" type="button" key={label}
+          ['Active duration', time(weekly.duration)], ['Activity streak', streak + (streak === 1 ? ' day' : ' days')]].map(([label, value], index) => <button className="panel activity-metric" type="button" key={label}
           onClick={() => setTab(index === 0 ? 'History' : 'Analytics')}><small>{label}</small><strong>{value}</strong></button>)}</div>
         <form className="panel activity-setup" onSubmit={event => { event.preventDefault()
           if (countdown) { const when = Date.now(); setNow(when); setStartAt(when + 3000) }
@@ -294,7 +294,7 @@ export default function ActivityStudio({ owner, view, day, massKg, token, onWalk
         <div><small>Estimated calories</small><strong>{activityCalories(draft, massKg) ?? '—'}</strong></div></div>
       {draft.targetMetres > 0 && <label>Distance goal<progress max={draft.targetMetres} value={draft.distance} /></label>}
       {draft.targetSeconds > 0 && <label>Duration goal<progress max={draft.targetSeconds} value={seconds(draft, now)} /></label>}
-      {mode === 'map' && draft.source === 'gps' && <Suspense fallback={<p>Loading route map…</p>}><ActivityMap points={draft.points} /></Suspense>}
+      {mode === 'map' && draft.source === 'gps' && <Suspense fallback={<p>Loading route map…</p>}><ActivityMap points={draft.points} live /></Suspense>}
       <div className="activity-actions">
         {active ? <button type="button" disabled={locked} onClick={() => patchDraft(value => pauseActivity(value, Date.now()))}>Pause activity</button> :
           <button type="button" disabled={locked} onClick={() => { const start = Date.now(); setNow(start)

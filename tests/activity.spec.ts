@@ -26,6 +26,12 @@ test('records simulated GPS offline, saves once, syncs and opens the saved route
     } else await route.fulfill({ json: [...rows.values()] })
   })
   await attachCloud(context)
+  let tileRequests = 0
+  await context.route('https://tile.openstreetmap.org/**', async route => {
+    tileRequests++
+    await route.fulfill({ contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#eee"/></svg>' })
+  })
   await page.addInitScript(() => {
     let emit: PositionCallback | undefined
     Object.defineProperty(navigator, 'geolocation', { value: {
@@ -45,6 +51,11 @@ test('records simulated GPS offline, saves once, syncs and opens the saved route
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('heading', { name: 'Start activity' })).toBeVisible()
   await expect(page.getByText('Activity sync: Synced')).toBeVisible()
+  const distanceInput = await page.getByLabel('Distance target (km)').boundingBox()
+  const durationInput = await page.getByLabel('Duration target (min)').boundingBox()
+  expect(distanceInput).not.toBeNull()
+  expect(durationInput).not.toBeNull()
+  expect(distanceInput!.y).toBe(durationInput!.y)
   const folder = process.env.ROUTINE_ACTIVITY_SCREENSHOTS
   if (folder) {
     await mkdir(folder, { recursive: true })
@@ -77,6 +88,11 @@ test('records simulated GPS offline, saves once, syncs and opens the saved route
   await expect.poll(() => rows.size).toBe(1)
   await expect(page.getByText('Activity sync: Synced')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Simulated morning walk' })).toBeVisible()
+  expect(tileRequests).toBe(0)
+  await page.getByRole('button', { name: 'Show street map' }).click()
+  await expect.poll(() => tileRequests).toBeGreaterThan(0)
+  await expect(page.getByText('Street map ready.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'OpenStreetMap contributors' })).toBeVisible()
   const downloadEvent = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export GPX' }).click()
   expect((await downloadEvent).suggestedFilename()).toBe('my-routine-activity.gpx')
