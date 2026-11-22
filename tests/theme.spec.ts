@@ -21,7 +21,7 @@ test('keeps Opal text, interactive controls and chart marks legible', async ({ p
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
     const icon = theme === 'light' ? 'violet' : 'rose'
     await expect(page.locator('.login-brand img')).toHaveAttribute(
-      'src', `/habit48/brand/icons/icon-512-mr-${icon}-v1.png`,
+      'src', `/habit48/brand/icons/icon-512-mr-${icon}-rounded-v2.png`,
     )
     const failures = await page.evaluate(() => {
       const css = getComputedStyle(document.documentElement)

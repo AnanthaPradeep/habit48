@@ -5,7 +5,7 @@ type BrandTheme = 'light' | 'dark'
 function BrandSymbol({ theme, width, pulse = false }: { theme: BrandTheme; width: number; pulse?: boolean }) {
   const variant = theme === 'dark' ? 'rose' : 'violet'
   return <span className={pulse ? 'brand-symbol pulse-box' : 'brand-symbol'}>
-    <img key={variant} src={`${import.meta.env.BASE_URL}brand/icons/icon-512-mr-${variant}-v1.png`}
+    <img key={variant} src={`${import.meta.env.BASE_URL}brand/icons/icon-512-mr-${variant}-rounded-v2.png`}
       width={width} height={width} alt="" />
   </span>
 }

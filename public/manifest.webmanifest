@@ -9,19 +9,19 @@
   "theme_color": "#71677f",
   "icons": [
     {
-      "src": "brand/icons/icon-192-mr-rose-v1.png",
+      "src": "brand/icons/icon-192-mr-rose-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "brand/icons/icon-512-mr-rose-v1.png",
+      "src": "brand/icons/icon-512-mr-rose-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "brand/icons/maskable-512-mr-rose-v1.png",
+      "src": "brand/icons/maskable-512-mr-rose-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
