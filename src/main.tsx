@@ -4,6 +4,7 @@ import { CloudJournal } from './services/cloud'
 import { watchJournal } from './services/realtime'
 import './routine.css'
 import './branding.css'
+import './components/refinement.css'
 
 const url = new URL(window.location.href)
 if (url.searchParams.has('utm_source', 'chatgpt.com')) {

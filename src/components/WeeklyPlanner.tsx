@@ -28,7 +28,7 @@ export function WeeklyPlanner({ slots, plans, sessions, append, start, status }:
         <button type="button" className="icon-button" aria-label="Next planner week" onClick={() => navigate(shift(week,7))}><ChevronRight /></button>
       </div>
     </div>
-    <div className="release-calendar">{sevenDays(week).map(date => {
+    <div className="release-calendar planner-days">{sevenDays(week).map(date => {
       const item = slots.get(date)
       const label = slotStatus(item, sessions, today())
       return <button type="button" className="quiet-button" key={date} aria-pressed={day === date}

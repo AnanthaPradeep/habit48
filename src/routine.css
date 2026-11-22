@@ -206,7 +206,7 @@ summary { cursor: pointer; font-weight: 650; }
 @media print {
   body { background: white; color: black; }
   #privateApp { display: block; }
-  #privateApp > :not(#printReport), #splash { display: none !important; }
+  #privateApp > :not(#printReport, .month-print), #splash { display: none !important; }
   #privateApp > #printReport { display: block; overflow-wrap: anywhere; }
   #printReport .bar { display: none; }
   #printReport h2 { margin: .75rem 0 .25rem; break-after: avoid; }

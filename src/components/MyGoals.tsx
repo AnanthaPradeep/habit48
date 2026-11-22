@@ -93,7 +93,7 @@ export default function MyGoals(data: GoalData) {
         <option value={0}>At or below</option><option value={1}>At or above</option></select></label>}
       <label>Target ({goalUnits(editing)})<input required type="number" min="0.01" step="any" value={editing.target}
         onChange={event => edit({ ...editing, target: Number(event.target.value) })} /></label>
-      <div className="progress-actions"><button>Save goal</button><button type="button" onClick={() => edit(null)}>Cancel</button></div>
+      <div className="progress-actions form-wide dialog-actions"><button type="button" className="quiet-button" onClick={() => edit(null)}>Cancel</button><button>Save goal</button></div>
     </form>}
     <div className="progress-grid">{(history ? sorted : active).map(goal => {
       const progress = goalProgress(goal, data.journal, data.sessions, data.logs, data.scheduled, day, data.customDates)
@@ -104,11 +104,11 @@ export default function MyGoals(data: GoalData) {
         <small>{progress.achieved ? 'Achieved ' + progress.achieved : goal.end < day ? 'Missed' : goal.start > day ?
           'Starts ' + goal.start : progress.remaining ? progress.remaining + ' days left' : 'Ends today'}</small>
         <div className="progress-actions">
-          <button type="button" onClick={() => edit({ ...goal, expected: goal.revision })}>Edit</button>
-          {goal.state !== 'Archived' && <><button type="button" onClick={() => save({ ...goal, state: goal.state === 'Paused' ? 'Active' : 'Paused', expected: goal.revision })}>
+          <button type="button" className="quiet-button" onClick={() => edit({ ...goal, expected: goal.revision })}>Edit</button>
+          {goal.state !== 'Archived' && <><button type="button" className="quiet-button" onClick={() => save({ ...goal, state: goal.state === 'Paused' ? 'Active' : 'Paused', expected: goal.revision })}>
             {goal.state === 'Paused' ? 'Resume' : 'Pause'}</button>
-            <button type="button" onClick={() => save({ ...goal, state: 'Archived', expected: goal.revision })}>Archive</button></>}
-          <button type="button" onClick={() => create(undefined, goal)}>Renew</button>
+            <button type="button" className="quiet-button danger-button" onClick={() => save({ ...goal, state: 'Archived', expected: goal.revision })}>Archive</button></>}
+          <button type="button" className="quiet-button" onClick={() => create(undefined, goal)}>Renew</button>
           {manualGoal(goal.kind) && goal.state === 'Active' && goal.start <= day && goal.end >= day &&
             <button type="button" onClick={() => { startLog(goal.id); setAmount('') }}>Log progress</button>}
         </div>
@@ -121,9 +121,9 @@ export default function MyGoals(data: GoalData) {
       </article>
     })}</div>
     {!history && !active.length && <p>Set a goal and see it move as you log your routine.</p>}
-    <div className="progress-actions"><button type="button" aria-pressed={history} onClick={() => showHistory(!history)}>{history ? 'Current goals' : 'Goal history'}</button>
+    <div className="progress-actions"><button type="button" className="quiet-button" aria-pressed={history} onClick={() => showHistory(!history)}>{history ? 'Current goals' : 'Goal history'}</button>
       <a href="#monthly">Monthly Review</a></div>
-    <p role="status">{notice}</p>
+    <p role="status" className="status-line">{notice}</p>
   </section>
 }
 function nextDay(day: string) {

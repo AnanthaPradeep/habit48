@@ -55,9 +55,8 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
         if (/^\d{4}-\d{2}$/.test(event.target.value) && event.target.value <= day.slice(0, 7)) setMonth(event.target.value + '-01')
       }} /></label>
       <button aria-label="Next month" disabled={monthShift(month, 1) > day} onClick={() => setMonth(monthShift(month, 1))}><ChevronRight size={18} /></button>
-      <a href="#review">Weekly Review</a>
     </div>
-    <div className="progress-grid">{metrics.map(([name, value, prior, matched, unit, deltaUnit]) => <article className="progress-tile" key={name}>
+    <div className="progress-grid monthly-metrics">{metrics.map(([name, value, prior, matched, unit, deltaUnit]) => <article className="progress-tile" key={name}>
       <h3>{name}</h3><strong>{display(value, unit)}</strong>
       <p>{matched === null || prior === null ? 'Comparison unavailable' :
         (matched - prior > 0 ? '+' : '') + display(matched - prior, deltaUnit) + ' vs previous month'}</p>
@@ -98,7 +97,7 @@ export default function MonthlyReview({ reflections, customCounts, ...data }: Go
     <ReflectionForm key={month} month={month} reflection={reflection} append={data.append} />
     <div className="progress-actions">
       <button onClick={() => download(monthlyWorkbook(rows), 'my-routine-' + month.slice(0, 7) + '.xlsx')}>Export monthly Excel</button>
-      <button onClick={() => { flushSync(() => print(true)); try { window.print() } finally { print(false) } }}>Print or save monthly PDF</button>
+      <button className="quiet-button" onClick={() => { flushSync(() => print(true)); try { window.print() } finally { print(false) } }}>Print or save monthly PDF</button>
     </div>
     {printing && createPortal(<MonthlyPrint rows={rows} />, document.getElementById('privateApp')!)}
   </section>

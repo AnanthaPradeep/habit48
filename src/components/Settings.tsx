@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { challengeCount, isJournal, validDate, type Journal } from '../domain/journal'
 import { download } from '../services/exports'
+import { ShieldCheck, Target } from 'lucide-react'
 
 interface Props {
   journal: Journal
@@ -39,7 +40,7 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
   }
   return <div className="settings-grid">
     <section className="panel">
-      <h2>Personal challenge</h2>
+      <div className="section-heading"><h2><Target aria-hidden="true" /> Personal challenge</h2></div>
       <form className="challenge-form" onSubmit={submit}>
         <label>Start date<input type="date" name="start" value={fields.start} required onChange={event =>
           setChallenge({ ...fields, start: event.target.value })} /></label>
@@ -51,15 +52,15 @@ export function Settings({ journal, status, saveChallenge, restore, refresh, log
       {!!journal.target && <progress max={journal.target} value={count} aria-label="Challenge days logged" />}
     </section>
     <section className="panel">
-      <h2>Cloud backup &amp; privacy</h2>
+      <div className="section-heading"><h2><ShieldCheck aria-hidden="true" /> Cloud backup &amp; privacy</h2></div>
       <div id="cloud">
         <p role="status" id="cloudStatus">{status}</p>
-        <div className="row"><button onClick={refresh}>Refresh from cloud</button><button onClick={logout}>Sign out</button></div>
+        <div className="row"><button className="quiet-button" onClick={refresh}>Refresh from cloud</button><button className="quiet-button" onClick={logout}>Sign out</button></div>
       </div>
       <p>Export a copy of your journal or restore an existing backup.</p>
-      <div className="row mt-3">
+      <div className="row">
         <button onClick={() => download(new Blob([JSON.stringify(journal, null, 2)], { type: 'application/json' }), 'my-routine.json')}>Export JSON</button>
-        <button onClick={() => file.current?.click()}>Restore JSON</button>
+        <button className="quiet-button danger-button" onClick={() => file.current?.click()}>Restore JSON</button>
       </div>
       <input ref={file} id="file" type="file" accept=".json" hidden onChange={event => void importBackup(event.currentTarget)} />
       {importStatus && <p role="status">{importStatus}</p>}

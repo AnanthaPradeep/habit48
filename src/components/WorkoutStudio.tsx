@@ -1,5 +1,6 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { Activity, ArrowRight, CalendarDays, Dumbbell, Flame, HeartPulse, Plus, Search, Timer, X } from 'lucide-react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
+import { Activity, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Dumbbell, Flame, HeartPulse, Plus, Search, Timer, X } from 'lucide-react'
+import { Pagination } from './Controls'
 import { exerciseById, exercises, groups, type Exercise } from '../domain/exercises'
 import { today, shift } from '../domain/journal'
 import { body, cooldown, full, lower, upper, warmup, week, completeSet, elapsed, finishWorkout, rest, sequence,
@@ -55,6 +56,9 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
   const [query, setQuery] = useState('')
   const [building, setBuilding] = useState(false)
   const [history, setHistory] = useState<'week' | 'month' | 'all'>('week')
+  const [libraryPage, setLibraryPage] = useState(0)
+  const [historyPage, setHistoryPage] = useState(0)
+  const weekTrack = useRef<HTMLDivElement>(null)
   const current = week[selected]
   const plans = [...new Map([...presetPlans, ...week.flatMap(day => day.plan ?? []), ...state.plans].map(plan => [plan.id, plan])).values()]
   const todaySlot = selected === dayIndex() ? planner.get(today()) : undefined
@@ -69,6 +73,21 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
   })
   const visibleSessions = state.sessions.filter(s => history === 'all' || s.day >= shift(today(), history === 'week' ? -6 : -29))
     .sort((a,b) => b.finishedAt.localeCompare(a.finishedAt))
+  const libraryIndex = Math.min(libraryPage, Math.max(0, Math.ceil(matches.length / 12) - 1))
+  const historyIndex = Math.min(historyPage, Math.max(0, Math.ceil(visibleSessions.length / 8) - 1))
+  function filterCategory(value: string) {
+    setCategory(value)
+    setLibraryPage(0)
+    setDetail(null)
+  }
+  function selectDay(index: number) {
+    select(index)
+    setPreview(null)
+    const track = weekTrack.current
+    const item = track?.children[index] as HTMLElement | undefined
+    if (track && item) track.scrollTo({ left: track.scrollLeft + item.getBoundingClientRect().left -
+      track.getBoundingClientRect().left - (track.clientWidth - item.clientWidth) / 2 })
+  }
 
   function start(plan: WorkoutPlan) {
     if (state.draft && !confirm('Replace the workout currently in progress?')) return
@@ -102,14 +121,25 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
       append={append} start={plan => { setPreview(plan); document.querySelector('.studio-hero')?.scrollIntoView({ block: 'start' }) }}
       status={planningStatus} />
     <section className="panel studio-week">
-      <div className="section-heading"><h2><CalendarDays /> Suggested week</h2></div>
-      <div className="studio-days">{week.map((day, i) => <button key={day.label} aria-pressed={selected === i}
-        onClick={() => { select(i); setPreview(null) }}><strong>{day.label}</strong><span>{day.plan?.name.replace(' Strength','') ?? 'Rest'}</span><small>{day.detail}</small></button>)}</div>
+      <div className="section-heading"><h2><CalendarDays aria-hidden="true" /> Suggested week</h2><div className="calendar-actions">
+        <button type="button" className="icon-button" aria-label="Previous suggested day" disabled={!selected} onClick={() => selectDay(selected - 1)}><ChevronLeft /></button>
+        <button type="button" className="icon-button" aria-label="Next suggested day" disabled={selected === week.length - 1} onClick={() => selectDay(selected + 1)}><ChevronRight /></button>
+      </div></div>
+      <div className="studio-days" ref={weekTrack} role="group" aria-label="Suggested workouts by day" onKeyDown={event => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+          event.preventDefault()
+          const next = Math.min(week.length - 1, Math.max(0, selected + (event.key === 'ArrowLeft' ? -1 : 1)))
+          selectDay(next)
+          const item = weekTrack.current?.children[next] as HTMLElement | undefined
+          item?.focus({ preventScroll: true })
+        }
+      }}>{week.map((day, i) => <button key={day.label} aria-pressed={selected === i}
+        onClick={() => selectDay(i)}><strong>{day.label}</strong><span>{day.plan?.name.replace(' Strength','') ?? 'Rest'}</span><small>{day.detail}</small></button>)}</div>
       <p>Walking days include a guided indoor circuit. Use an easy walk for the remaining time if that suits your plan.</p>
     </section>
     <section className="studio-categories" aria-label="Exercise categories">
-      <button aria-pressed={category === 'Bodyweight'} onClick={() => setCategory(category === 'Bodyweight' ? 'All' : 'Bodyweight')}><Activity /><strong>Bodyweight</strong><span>No gym equipment</span></button>
-      <button aria-pressed={category === 'Dumbbell'} onClick={() => setCategory(category === 'Dumbbell' ? 'All' : 'Dumbbell')}><Dumbbell /><strong>Dumbbell</strong><span>Up to 2 × 5 kg</span></button>
+      <button aria-pressed={category === 'Bodyweight'} onClick={() => filterCategory(category === 'Bodyweight' ? 'All' : 'Bodyweight')}><Activity /><strong>Bodyweight</strong><span>No gym equipment</span></button>
+      <button aria-pressed={category === 'Dumbbell'} onClick={() => filterCategory(category === 'Dumbbell' ? 'All' : 'Dumbbell')}><Dumbbell /><strong>Dumbbell</strong><span>Up to 2 × 5 kg</span></button>
     </section>
     <section className="panel">
       <div className="section-heading"><h2>Workout plans</h2><button type="button" onClick={() => setBuilding(value => !value)}><Plus size={16} /> Custom workout</button></div>
@@ -122,11 +152,11 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
     <section className="panel">
       <h2>Exercise library</h2>
       <div className="studio-filters">
-        <label><Search size={16} /> Search exercises<input type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>
-        <label>Equipment<select value={category} onChange={event => setCategory(event.target.value)}>
+        <label><Search size={16} /> Search exercises<input type="search" value={query} onChange={event => { setQuery(event.target.value); setLibraryPage(0); setDetail(null) }} /></label>
+        <label>Equipment<select value={category} onChange={event => filterCategory(event.target.value)}>
           {['All','Bodyweight','Dumbbell'].map(v => <option key={v}>{v}</option>)}
         </select></label>
-        <label>Muscle group<select value={group} onChange={event => setGroup(event.target.value)}>
+        <label>Muscle group<select value={group} onChange={event => { setGroup(event.target.value); setLibraryPage(0); setDetail(null) }}>
           {['All', ...groups].map(v => <option key={v}>{v}</option>)}
         </select></label>
       </div>
@@ -135,25 +165,28 @@ export default function WorkoutStudio({ store, state, massKg, planner, append, p
         <ExerciseGuide exercise={detail} />
       </section>}
       <p className="studio-match">{matches.length} exercises</p>
-      <div className="studio-library">{matches.map(exercise => <button type="button" className="studio-exercise" key={exercise.id}
+      {!matches.length && <p className="empty-state">No exercises match these filters.</p>}
+      <div className="studio-library">{matches.slice(libraryIndex * 12, (libraryIndex + 1) * 12).map(exercise => <button type="button" className="studio-exercise" key={exercise.id}
         onClick={() => { setDetail(exercise); requestAnimationFrame(() => document.querySelector('.studio-detail')?.scrollIntoView({ block: 'nearest' })) }}>
         <ExerciseDemo exercise={exercise} thumbnail /><strong>{exercise.name}</strong>
         <small>{exercise.group} · {exercise.sets} × {exercise.reps} {exercise.timed ? 'sec' : 'reps'}</small>
       </button>)}</div>
+      <Pagination page={libraryIndex} total={matches.length} size={12} change={page => { setLibraryPage(page); setDetail(null) }} label="Exercise pages" />
     </section>
     <ExerciseProgress sessions={state.sessions} />
     <section className="panel">
       <div className="section-heading"><h2>Workout history</h2><label className="studio-range">Period<select value={history}
-        onChange={event => setHistory(event.target.value as typeof history)}><option value="week">Last 7 days</option>
+        onChange={event => { setHistory(event.target.value as typeof history); setHistoryPage(0) }}><option value="week">Last 7 days</option>
         <option value="month">Last 30 days</option><option value="all">All time</option></select></label></div>
       <WorkoutStats sessions={visibleSessions} currentStreak={streak(state.sessions, today())} />
       <WorkoutTrend sessions={visibleSessions} />
       <p role="status">{state.status}</p>
       <p className="muted">Calorie estimates use your latest journal weight. Workout burn is separate from food calories.</p>
       {!visibleSessions.length && <p>No workouts in this period.</p>}
-      {visibleSessions.map(session => <details key={session.id} className="workout-record"><summary>{session.name} <small>{session.day} · {session.sets.length} sets · {sessionStatus(session)}</small></summary>
+      {visibleSessions.slice(historyIndex * 8, (historyIndex + 1) * 8).map(session => <details key={session.id} className="workout-record"><summary>{session.name} <small>{session.day} · {session.sets.length} sets · {sessionStatus(session)}</small></summary>
         <ul>{session.sets.map(set => <li key={set.position}>{exerciseById.get(set.exerciseId)?.name ?? set.exerciseId} · {set.reps} {exerciseById.get(set.exerciseId)?.timed ? 'sec' : 'reps'} · {set.kg} kg total</li>)}</ul>
       </details>)}
+      <Pagination page={historyIndex} total={visibleSessions.length} size={8} change={setHistoryPage} label="Workout history pages" />
     </section>
   </div>
 }

@@ -38,6 +38,19 @@ test('personal goals update from quick logs and monthly reflections survive relo
   await expect(review.getByLabel('What went well?')).toHaveValue('Walked at lunch')
   const [file] = await Promise.all([page.waitForEvent('download'), review.getByRole('button', { name: 'Export monthly Excel' }).click()])
   expect(file.suggestedFilename()).toMatch(/my-routine-\d{4}-\d{2}\.xlsx/)
+  await page.getByRole('button', { name: 'Print or save monthly PDF' }).evaluate(button => {
+    // Retain the portal output after the mocked print call returns.
+    window.print = () => {
+      const report = document.querySelector('#privateApp > .month-print')
+      report?.parentElement?.append(report.cloneNode(true))
+    }
+    if (!(button instanceof HTMLButtonElement)) throw Error('Missing print control')
+    button.click()
+  })
+  await page.emulateMedia({ media: 'print' })
+  await expect(page.locator('#privateApp > .month-print')).toContainText('Walked at lunch')
+  await expect(page.locator('#privateApp > .month-print')).toBeVisible()
+  await page.emulateMedia({ media: 'screen' })
 })
 
 test('logs a custom habit and exports an opt-in calendar reminder', async ({ page, context }) => {

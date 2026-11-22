@@ -29,6 +29,7 @@
 .studio-plan-grid button { display: flex; justify-content: space-between; align-items: center; }
 .studio-plan-grid small { display: block; margin-top: .25rem; }
 .studio-library { grid-template-columns: repeat(auto-fit, minmax(143px, 1fr)); }
+.studio-exercise strong { overflow-wrap:anywhere; }
 .studio-exercise { display: grid; gap: .25rem; align-content: start; padding: .55rem; }
 .exercise-art { border-radius: 18px; background: #f2dfc8; min-width: 0; display: grid; justify-items: center; align-content: center; }
 .exercise-art canvas { display: block; width: min(100%, 270px); height: auto; }
@@ -63,10 +64,13 @@
 .studio-trend li { display: grid; grid-template-columns: 3.25rem 1fr 4.2rem; gap: .5rem; align-items: center; font-size: .84rem; }
 .studio-trend meter { width: 100%; accent-color: var(--accent); }
 @media (max-width: 650px) {
-  .studio-days { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .studio-days { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:minmax(112px,30%); overflow-x:auto;
+    padding:4px; scroll-snap-type:x mandatory; scroll-behavior:smooth; overscroll-behavior-inline:contain; }
+  .studio-days button { scroll-snap-align:start; }
   .studio-filters, .studio-set { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .studio-filters label:first-child { grid-column: 1 / -1; }
 }
+@media (prefers-reduced-motion:reduce) { .studio-days { scroll-behavior:auto; } }
 @media (max-width: 420px) {
   .studio-hero { grid-template-columns: 1fr minmax(0,.52fr); gap: .45rem; }
   .studio-hero h2 { font-size: 2.15rem; }

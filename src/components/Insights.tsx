@@ -16,7 +16,7 @@ export default function Insights({ journal, filters, change, print, scheduled }:
 }) {
   const { values, summary } = report(journal, filters, scheduled)
   return <section className="panel insights-panel">
-    <h2>Progress over time</h2>
+    <div className="section-heading"><h2>Progress over time</h2></div>
     <div className="report-filters">
       <label>Report period<select value={filters.period} onChange={event => change({ ...filters, period: event.target.value as Filters['period'] })}>
         <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
@@ -35,16 +35,17 @@ export default function Insights({ journal, filters, change, print, scheduled }:
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis dataKey="key" tick={{ fill: 'var(--muted)', fontSize: 10 }} minTickGap={18} />
             <YAxis width={34} domain={filters.metric === 'habit' ? [0, 100] : [0, 'auto']} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: 'var(--surface)', borderColor: 'var(--line)' }} />
+            <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--ink)' }}
+              itemStyle={{ color: 'var(--ink)' }} />
             <Bar dataKey="value" name={metricOptions.find(option => option.value === filters.metric)?.label} fill="var(--accent)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>}
         <details><summary>View chart data</summary><ValueList values={values} /></details>
-      </> : <p>No entries in this date range.</p>}
+      </> : <p className="empty-state">No entries in this date range.</p>}
     </div>
     <div className="row">
       <button onClick={() => download(workbook(journal, filters, scheduled), 'my-routine.xlsx')}>Export Excel (.xlsx)</button>
-      <button onClick={() => print(filters)}>Print / Save PDF</button>
+      <button className="quiet-button" onClick={() => print(filters)}>Print / Save PDF</button>
     </div>
   </section>
 }

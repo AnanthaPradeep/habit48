@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Bell, CalendarDays, Droplets, Dumbbell, Moon, Target, ListChecks } from 'lucide-react'
 import { shift, today } from '../domain/journal'
 import { weekdayIndex } from '../domain/schedule'
 import { download } from '../services/exports'
 
 const labels = ['Workout', 'Water logging', 'Habit completion', 'Weekly review', 'Monthly review', 'Personal goal deadlines']
+const icons = [Dumbbell, Droplets, ListChecks, CalendarDays, CalendarDays, Target]
 type Rule = { enabled: boolean; time: string }
 type Preferences = { rules: Rule[]; quietStart: string; quietEnd: string; snooze: Record<string, number>; seen: string[] }
 const defaults = (): Preferences => ({ rules: labels.map(() => ({ enabled: false, time: '18:00' })),
@@ -77,26 +79,33 @@ export function SmartReminders({ owner, settings, workoutDays, deadlines }: {
     download(new Blob([contents], { type: 'text/calendar;charset=utf-8' }), 'my-routine-reminders.ics')
   }
   if (!settings && !due.length) return null
-  return <section className="panel progress-module" aria-label="Smart reminders">
-    <h2>Smart reminders</h2>
+  return <section className="panel progress-module reminders" aria-label="Smart reminders">
+    <div className="section-heading"><h2><Bell aria-hidden="true" /> Smart reminders</h2></div>
     {settings && <>
-      <p>In-app reminders check while My Routine is open. Export to your calendar for alerts while the app is closed. Browser background delivery is currently unavailable.</p>
-      <div className="progress-form">{labels.map((label, i) => <fieldset key={label}><legend>{label}</legend>
-        <label><input type="checkbox" checked={prefs.rules[i].enabled} onChange={event => save({ ...prefs,
-          rules: prefs.rules.map((rule, index) => index === i ? { ...rule, enabled: event.target.checked } : rule) })} /> Enabled</label>
-        <label>Reminder time<input type="time" value={prefs.rules[i].time} onChange={event => {
+      <p>Reminders run while My Routine is open. Export to your calendar for alerts when it’s closed.</p>
+      <div className="reminder-list">{labels.map((label, i) => {
+        const Icon = icons[i]
+        return <div role="group" aria-label={label} className="reminder-row" key={label}>
+        <div className="reminder-name"><span className="section-icon"><Icon aria-hidden="true" /></span><strong>{label}</strong></div>
+        <label className="reminder-time"><span className="visually-hidden">Reminder time</span><input type="time" value={prefs.rules[i].time} onChange={event => {
           const time = event.target.value
           if (time) save({ ...prefs, rules: prefs.rules.map((rule, index) => index === i ? { ...rule, time } : rule) })
-        }} /></label></fieldset>)}
+        }} /></label>
+        <label className="switch-control"><span className="visually-hidden">Enabled</span><input type="checkbox" checked={prefs.rules[i].enabled} onChange={event => save({ ...prefs,
+          rules: prefs.rules.map((rule, index) => index === i ? { ...rule, enabled: event.target.checked } : rule) })} /><span aria-hidden="true" /></label>
+        </div>
+      })}</div>
+      <div className="quiet-hours">
+        <h3><Moon aria-hidden="true" /> Quiet hours</h3>
         <label>Quiet hours start<input type="time" value={prefs.quietStart} onChange={event => { if (event.target.value) save({ ...prefs, quietStart: event.target.value }) }} /></label>
         <label>Quiet hours end<input type="time" value={prefs.quietEnd} onChange={event => { if (event.target.value) save({ ...prefs, quietEnd: event.target.value }) }} /></label>
       </div>
       <div className="progress-actions">
         <button disabled={!prefs.rules.some(rule => rule.enabled)} onClick={calendar}>Export 90 days to calendar</button>
-        {permission === 'default' && <button onClick={() => {
+        {permission === 'default' && <button className="quiet-button" onClick={() => {
           void Notification.requestPermission().then(setPermission).catch(() => setStatus('Browser notifications are unavailable.'))
         }}>Enable browser notification permission</button>}
-        {permission === 'granted' && <button onClick={() => {
+        {permission === 'granted' && <button className="quiet-button" onClick={() => {
           if (!('serviceWorker' in navigator)) { setStatus('Browser notifications require an active service worker.'); return }
           void navigator.serviceWorker.getRegistration().then(registration => {
             if (registration) return registration.showNotification('My Routine reminder')

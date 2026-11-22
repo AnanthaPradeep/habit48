@@ -34,7 +34,7 @@ export function DailyJournal({ entry, warnings, changeMeal, changeEntry, recalcu
       <div id="autoWarnings" role="status">{warnings.join(' | ')}</div>
       <details><summary>Breakdown and manual adjustments</summary>
         <ManualFood items={items} change={cal => changeEntry({ ...entry, cal })} />
-        <button type="button" onClick={recalculate}>Recalculate from journal</button>
+        <button type="button" className="quiet-button" onClick={recalculate}>Recalculate from journal</button>
       </details>
     </section>
     <section className="panel recovery">
@@ -70,7 +70,7 @@ function ManualFood({ items, change }: { items: Food[]; change(items: Food[]): v
   }
   return <>
     <p>Approximate calories per serving. Choose food, portion and meal. Oil, recipes and serving sizes vary.</p>
-    <form onSubmit={add}>
+    <form className="manual-food" onSubmit={add}>
       <label htmlFor="manual-meal">Meal</label>
       <select id="manual-meal" name="meal">{meals.map(meal => <option key={meal}>{meal}</option>)}</select>
       <label htmlFor="manual-food">Food</label>
@@ -90,7 +90,7 @@ function ManualFood({ items, change }: { items: Food[]; change(items: Food[]): v
       return <div key={meal}><h3>{meal} · {Math.round(total(matches.map(match => match.item)) ?? 0)} kcal</h3>
         {matches.map(({ item, index }) => <p key={index}>
           {item.name} × {item.qty} = {Math.round(item.qty * item.rate)} kcal
-          <button type="button" onClick={() => change(items.filter((_, i) => i !== index))}>Remove</button>
+          <button type="button" className="quiet-button danger-button" onClick={() => change(items.filter((_, i) => i !== index))}>Remove</button>
         </p>)}</div>
     })}</div>
   </>

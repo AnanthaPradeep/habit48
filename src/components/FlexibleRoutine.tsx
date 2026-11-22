@@ -26,22 +26,23 @@ export default function FlexibleRoutine({ schedules, append }: { schedules: Iter
       recovery: [...current.recovery.filter(index => !indices.includes(index)), ...(recovery ? indices : [])] })
   }
   return <section className="panel release-stack" aria-label="Flexible routine">
-    <div className="section-heading"><div><p className="eyebrow">HABIT SCHEDULE</p><h2><CalendarDays size={18} /> Flexible routine</h2></div>
+    <div className="section-heading"><h2><CalendarDays aria-hidden="true" /> Flexible routine</h2></div>
+    <p>Choose which habits count each day. Rest and recovery days are excluded from streaks.</p>
+    <div className="release-calendar schedule-days" role="group" aria-label="Day of week">{names.map((name, index) => <button key={name} type="button" className="quiet-button"
+      aria-pressed={day === index} data-rest={!current.days[index].length} onClick={() => setDay(index)}><strong>{name}</strong>
+      <small>{current.days[index].length || (current.recovery.includes(index) ? 'Recover' : 'Rest')}</small></button>)}</div>
+    <div className="schedule-controls">
       <label>Effective date<input type="date" min={today()} value={effective} onChange={event => {
         if (validDate(event.target.value) && event.target.value >= today()) {
           setEffective(event.target.value); setDraft(null); setNotice('')
         }
-      }} /></label></div>
-    <p>Choose what counts on each day. Rest and recovery days are excluded from completion and streaks.</p>
-    <div className="release-calendar">{names.map((name, index) => <button key={name} type="button" className="quiet-button"
-      aria-pressed={day === index} onClick={() => setDay(index)}><strong>{name}</strong>
-      <small>{current.days[index].length ? current.days[index].length + ' habits' : current.recovery.includes(index) ? 'Recovery' : 'Rest'}</small></button>)}</div>
+      }} /></label>
     <label>Day mode<select value={mode} onChange={event => apply([day], event.target.value === 'routine' ? [...allHabits] : [], event.target.value === 'recovery')}>
       <option value="routine">Routine day</option><option value="rest">Rest day</option><option value="recovery">Recovery day</option>
-    </select></label>
+    </select></label></div>
     {mode === 'routine' && <fieldset className="release-checks"><legend>Scheduled habits for {names[day]}</legend>
-      {habits.map((habit, index) => <label className="release-goal" key={habit}><input type="checkbox" checked={due.includes(index)}
-        onChange={event => apply([day], event.target.checked ? [...due,index].sort((a,b) => a-b) : due.filter(item => item !== index))} /> {habit}</label>)}</fieldset>}
+      <div className="schedule-check-grid">{habits.map((habit, index) => <label className="release-goal" key={habit}><input type="checkbox" checked={due.includes(index)}
+        onChange={event => apply([day], event.target.checked ? [...due,index].sort((a,b) => a-b) : due.filter(item => item !== index))} /> {habit}</label>)}</div></fieldset>}
     <div className="release-actions">
       <button type="button" className="quiet-button" onClick={() => apply([0,1,2,3,4], due, mode === 'recovery')}>Use for weekdays</button>
       <button type="button" className="quiet-button" onClick={() => apply([5,6], due, mode === 'recovery')}>Use for weekends</button>
@@ -53,6 +54,6 @@ export default function FlexibleRoutine({ schedules, append }: { schedules: Iter
     </div>
     {history.length > 0 && <details><summary>Schedule history</summary><ul>{history.sort((a,b) => b.effective.localeCompare(a.effective)).map(item =>
       <li key={item.revision}>From {item.effective} · {item.days.filter(day => day.length > 0).length} routine days per week</li>)}</ul></details>}
-    <p role="status" className="muted">{notice}</p>
+    <p role="status" className="muted status-line">{notice}</p>
   </section>
 }

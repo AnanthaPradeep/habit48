@@ -176,11 +176,15 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
   }
 
   const dated = view === 'today' || view === 'journal'
-  return <main id="privateApp">
+  return <main id="privateApp" data-view={view}>
     <Sidebar view={view} logged={Object.keys(journal.entries).length} />
     <div className="workspace">
       <PageHeader day={day} view={view} theme={theme} toggle={toggle}
         connection={state.connection} lastSynced={state.lastSynced} />
+      {(view === 'review' || view === 'monthly') && <nav className="review-tabs" aria-label="Review period">
+        <a href="#review" aria-current={view === 'review' ? 'page' : undefined}>Weekly</a>
+        <a href="#monthly" aria-current={view === 'monthly' ? 'page' : undefined}>Monthly</a>
+      </nav>}
       {dated && <Calendar day={day} journal={journal} move={move} />}
       {view === 'today' && <Today entry={entry} day={day} start={journal.start} due={due}
         streak={habitStreak(journal, today(), scheduled)} onToggle={index =>
@@ -212,7 +216,6 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
           append={routine.append} planningStatus={planningStatus} />
       </Suspense>}
       {view === 'review' && <Suspense fallback={<p role="status">Loading Weekly Review…</p>}>
-        <p><a href="#monthly">Open Monthly Review</a></p>
         <WeeklyReview journal={journal} sessions={sessions} goals={[...planning.goals.values()]}
         append={routine.append} status={planningStatus} scheduled={scheduled}
         planCounts={week => plannerCounts(planning.planner, sessions, week, today())} />
@@ -224,7 +227,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
           <p>Studio activity is shown separately from manually logged activity and food calories.</p>
         </section>}
       </>}
-      {view === 'settings' && <div className="release-stack"><Suspense fallback={<p role="status">Loading habit schedules…</p>}>
+      {view === 'settings' && <div className="settings-page"><Suspense fallback={<p role="status">Loading habit schedules…</p>}>
         <FlexibleRoutine schedules={[...planning.schedules.values()]} append={routine.append} />
       </Suspense>
         <CustomHabits {...customData} day={today()} manage />
@@ -232,7 +235,7 @@ function Workspace({ cloud, state, theme, toggle, owner }: {
         saveChallenge={(start, target) => discard() && cloud.saveChallenge(start, target)}
         restore={backup => discard() && cloud.restore(backup)}
         refresh={() => void cloud.refresh(Boolean(draft))} logout={() => void cloud.logout(Boolean(draft))} /></div>}
-      {dated && <footer className="save-bar"><p role="status">{formStatus || (draft ? 'Unsaved changes' :
+      {dated && <footer className="save-bar" data-dirty={Boolean(draft)}><p role="status">{formStatus || (draft ? 'Unsaved changes' :
         status.includes('newer saved values') ? status : saved ? 'Saved' : 'Not saved')}</p>
         <button onClick={save}>Save day</button></footer>}
     </div>

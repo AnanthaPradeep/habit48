@@ -22,7 +22,7 @@ export function Sidebar({ view, logged }: { view: View; logged: number }) {
   return <aside className="sidebar">
     <a className="brand" href="#today"><img src={logo} alt="" width="46" height="46" /><span>My Routine<small>Wellness journal</small></span></a>
     <nav className="navigation" aria-label="Main navigation">
-      {views.map(({ id, label, Icon }) => <a key={id} href={'#' + id} aria-current={view === id ? 'page' : undefined}>
+      {views.map(({ id, label, Icon }) => <a key={id} href={'#' + id} aria-current={view === id || (id === 'review' && view === 'monthly') ? 'page' : undefined}>
         <Icon aria-hidden="true" /><span>{label}</span>
       </a>)}
     </nav>
