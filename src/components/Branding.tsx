@@ -52,8 +52,8 @@ export function Login({ busy, status, login, theme }: LoginProps) {
     <h1>Welcome back.</h1>
     <p className="login-sub">Small steps. Every day.</p>
     <form id="loginForm" onSubmit={submit}>
-      <label htmlFor="cloudUser">Username</label>
-      <input id="cloudUser" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="Enter username" required />
+      <label htmlFor="cloudUser">Email address</label>
+      <input id="cloudUser" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} inputMode="email" placeholder="Enter your email address" required />
       <label htmlFor="cloudPassword">Password</label>
       <div className="password-wrap">
         <input ref={passwordInput} id="cloudPassword" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter password" required />

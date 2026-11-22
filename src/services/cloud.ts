@@ -1,6 +1,6 @@
-import { blankEntry, isJournal, keys, readJournal, type Entry, type Journal } from '../domain/journal'
+import { blankEntry, blankJournal, isJournal, keys, readJournal, type Entry, type Journal } from '../domain/journal'
 import { applyChanges, canUndoQuick, changesBetween, conflictsWith, projectQuick, uncontestedChanges, type QuickAction, type QuickInput } from '../domain/quickLog'
-import { ownerEmail, ownerUsername, publishableKey, supabaseUrl } from './config'
+import { allowedEmail, ownerEmail, ownerUsername, publishableKey, supabaseUrl } from './config'
 import type { WatchJournal } from './realtime'
 
 interface Session {
@@ -60,6 +60,7 @@ class RequestError extends Error {
 
 export class CloudJournal {
   private state: State
+  private local: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
   private listeners = new Set<() => void>()
   private session: Session | null = null
   private base: Journal | null = null
@@ -81,22 +82,40 @@ export class CloudJournal {
   private lastTap = { signature: '', at: 0 }
 
   constructor(
-    private readonly local: Storage,
+    private readonly browserStorage: Storage,
     private readonly sessions: Storage,
     private readonly confirm: Conflict,
     private readonly send: typeof fetch,
     private readonly watch?: WatchJournal,
   ) {
-    this.state = { journal: readJournal(local), unlocked: false, busy: false, status: '', connection: 'Connecting', lastSynced: null,
+    this.local = browserStorage
+    this.state = { journal: blankJournal(), unlocked: false, busy: false, status: '', connection: 'Connecting', lastSynced: null,
       quick: [], lastQuick: null }
+  }
+
+  private loadAccountCache(session: Session) {
+    const storage = this.browserStorage
+    const prefix = session.user.email === ownerEmail ? '' : 'routine-account:' + session.user.id + ':'
+    this.local = {
+      getItem: key => storage.getItem(prefix + key),
+      setItem: (key, value) => storage.setItem(prefix + key, value),
+      removeItem: key => storage.removeItem(prefix + key),
+    }
+    const local = this.local
+    const next: Pick<State, 'journal' | 'quick' | 'lastQuick' | 'lastSynced'> = {
+      journal: readJournal(local), quick: [], lastQuick: null, lastSynced: null,
+    }
+    this.base = null
+    this.lastTap = { signature: '', at: 0 }
     try {
       const saved = JSON.parse(this.read(local, quickKey) ?? '{}')
-      if (Array.isArray(saved.quick)) this.state.quick = saved.quick
-      if (saved.lastQuick?.id && saved.lastQuick?.day) this.state.lastQuick = saved.lastQuick
+      if (Array.isArray(saved.quick)) next.quick = saved.quick
+      if (saved.lastQuick?.id && saved.lastQuick?.day) next.lastQuick = saved.lastQuick
       const base: unknown = JSON.parse(this.read(local, baseKey) ?? 'null')
       if (isJournal(base)) this.base = base
     } catch { /* Retain the original journal if the additional cache is unreadable. */ }
-    this.pending = this.read(local, keys.pending) === '1' || !!this.state.quick.length
+    this.pending = this.read(local, keys.pending) === '1' || !!next.quick.length
+    this.update(next)
   }
 
   getSnapshot = () => this.state
@@ -114,7 +133,7 @@ export class CloudJournal {
     this.state = { ...this.state, ...patch, connection }
     this.listeners.forEach(listener => listener())
   }
-  private read(storage: Storage, key: string) {
+  private read(storage: Pick<Storage, 'getItem'>, key: string) {
     try { return storage.getItem(key) } catch { return null }
   }
   private rememberBase(journal: Journal) {
@@ -139,13 +158,16 @@ export class CloudJournal {
     return data as T
   }
   private remember(session: Session) {
-    if (session.user?.email !== ownerEmail || !session.user.id || !session.access_token || !session.refresh_token) throw Error('Account not permitted')
+    if (!allowedEmail(session.user?.email) || !session.user.id || !session.access_token || !session.refresh_token) throw Error('Account not permitted')
+    if (this.session && this.session.user.id !== session.user.id) throw Error('Account changed')
+    if (!this.session) this.loadAccountCache(session)
     this.session = session
     try { this.sessions.setItem(keys.session, JSON.stringify(session)) } catch { /* Current tab can still use this session. */ }
   }
   private forget() {
     this.stopWatch()
     this.session = null
+    this.pending = false
     this.base = null
     this.needsMerge = false
     this.knownStamp = 0
@@ -189,12 +211,16 @@ export class CloudJournal {
       this.update({ status: message(error) })
     } finally { this.update({ busy: false }) }
   }
-  login = async (username: string, password: string) => {
-    if (this.state.busy) return false
+  login = async (identifier: string, password: string) => {
+    if (this.state.busy || this.state.unlocked) return false
     this.update({ busy: true, status: '' })
     try {
-      if (username.trim().toLowerCase() !== ownerUsername) throw Error('Invalid username or password')
-      this.remember(await this.request<Session>('/auth/v1/token?grant_type=password', 'POST', { email: ownerEmail, password }))
+      const input = identifier.trim().toLowerCase()
+      const email = input === ownerUsername ? ownerEmail : input
+      if (!allowedEmail(email)) throw Error('Invalid email or password')
+      const session = await this.request<Session>('/auth/v1/token?grant_type=password', 'POST', { email, password })
+      if (session.user?.email !== email) throw Error('Account not permitted')
+      this.remember(session)
       await this.unlock()
       return true
     } catch (error) {
@@ -457,7 +483,7 @@ export class CloudJournal {
     }
     const session = this.session
     this.forget()
-    this.update({ unlocked: false, status: 'Signed out.', lastSynced: null })
+    this.update({ unlocked: false, status: 'Signed out.', lastSynced: null, journal: blankJournal(), quick: [], lastQuick: null })
     try {
       if (session) await this.request('/auth/v1/logout?scope=local', 'POST', undefined, session.access_token)
     } catch { /* The local session is already cleared. */ }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { CloudJournal } from '../src/services/cloud'
-import { ownerEmail, ownerUsername } from '../src/services/config'
+import { ownerEmail, ownerUsername, testEmail } from '../src/services/config'
 import { blankEntry, keys, type Journal } from '../src/domain/journal'
 
 function storage(): Storage {
@@ -22,6 +22,34 @@ const entry = (notes: string) => ({ ...blankEntry(), notes })
 const initial: Journal = { start: day, target: 48, entries: { [day]: entry('initial') } }
 
 describe('cloud journal sync', () => {
+  it('isolates offline journals when switching between emails on one device', async () => {
+    const local = storage()
+    const sessions = storage()
+    local.setItem(keys.journal, JSON.stringify(initial))
+    const isolated = { ...session, user: { id: 'test-id', email: testEmail } }
+    const request: typeof fetch = async (input, options) => {
+      const url = new URL(String(input))
+      if (url.pathname.endsWith('/token')) {
+        const { email } = JSON.parse(String(options?.body))
+        return Response.json(email === testEmail ? isolated : session)
+      }
+      if (url.pathname.endsWith('/logout')) return new Response(null, { status: 204 })
+      if (options?.method === 'POST') return Response.json([JSON.parse(String(options.body))])
+      return Response.json(url.searchParams.get('user_id') === 'eq.fake-id'
+        ? [{ ...session.user, payload: initial, updated_at: new Date().toISOString() }] : [])
+    }
+    const controller = new CloudJournal(local, sessions, () => false, request)
+    expect(await controller.login(testEmail.toUpperCase(), 'fixture-password')).toBe(true)
+    expect(controller.getSnapshot().journal.entries).toEqual({})
+    await vi.waitFor(() => expect(controller.getSnapshot().lastSynced).not.toBeNull())
+    controller.saveEntry(day, entry('test account only'))
+    await vi.waitFor(() => expect(local.getItem('routine-account:test-id:' + keys.pending)).toBeNull())
+    await controller.logout(false)
+    expect(await controller.login(ownerEmail, 'fixture-password')).toBe(true)
+    expect(controller.getSnapshot().journal.entries[day].notes).toBe('initial')
+    expect(JSON.parse(local.getItem('routine-account:test-id:' + keys.journal)!).entries[day].notes).toBe('test account only')
+  })
+
   it('retries a compare-and-swap conflict and rebases saves made during an in-flight write', async () => {
     const local = storage()
     const sessions = storage()

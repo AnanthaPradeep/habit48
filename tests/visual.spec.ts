@@ -31,7 +31,7 @@ test('visual audit of every route and supported viewport', async ({ page, contex
   await page.screenshot({ path: resolve(folder, 'login-390-dark.png') })
   await page.emulateMedia({ colorScheme: 'light' })
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
-  await page.getByLabel('Username').fill(ownerUsername)
+  await page.getByLabel('Email address').fill(ownerUsername)
   await page.getByLabel('Password', { exact: true }).fill('sample-password')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.locator('#privateApp')).toBeVisible()

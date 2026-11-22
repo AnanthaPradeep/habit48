@@ -5,7 +5,7 @@ import { journalBackend } from './supabase-fixture'
 async function open(page: Page) {
   await page.goto('./')
   await page.locator('#splash').waitFor({ state: 'hidden' })
-  await page.getByLabel('Username').fill(ownerUsername)
+  await page.getByLabel('Email address').fill(ownerUsername)
   await page.getByLabel('Password', { exact: true }).fill('sample-password')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.getByRole('navigation').getByRole('link', { name: 'Workout' }).click()

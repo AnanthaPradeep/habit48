@@ -7,7 +7,7 @@ import { journalBackend, mockSupabase } from './supabase-fixture'
 
 async function login(page: Page) {
   await page.locator('#splash').waitFor({ state: 'hidden' })
-  await page.getByLabel('Username').fill(ownerUsername.toUpperCase())
+  await page.getByLabel('Email address').fill(ownerUsername.toUpperCase())
   await page.getByLabel('Password', { exact: true }).fill('sample-password')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('main')).toBeVisible()
@@ -22,7 +22,7 @@ test('signed-out access, username gate, password visibility and sign-out', async
   await page.goto('./')
   await expect(page.getByRole('main')).toHaveCount(0)
   await page.locator('#splash').waitFor({ state: 'hidden' })
-  await page.getByLabel('Username').fill('invalid-user')
+  await page.getByLabel('Email address').fill('invalid-user')
   const password = page.getByLabel('Password', { exact: true })
   await password.fill('sample-password')
   await page.getByRole('button', { name: 'Show password' }).click()
@@ -30,7 +30,7 @@ test('signed-out access, username gate, password visibility and sign-out', async
   await page.getByRole('button', { name: 'Hide password' }).click()
   await expect(password).toHaveAttribute('type', 'password')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.locator('#loginStatus')).toContainText('Invalid username or password')
+  await expect(page.locator('#loginStatus')).toContainText('Invalid email or password')
   await login(page)
   await syncDone(page)
   await nav(page, 'Settings')

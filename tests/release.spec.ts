@@ -7,7 +7,7 @@ const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole
 async function login(page: Page) {
   await page.goto('./')
   await page.locator('#splash').waitFor({ state: 'hidden' })
-  await page.getByLabel('Username').fill(ownerUsername)
+  await page.getByLabel('Email address').fill(ownerUsername)
   await page.getByLabel('Password', { exact: true }).fill('sample-password')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.locator('.sync-indicator [role="status"]')).toHaveText('Live')
